@@ -27,7 +27,7 @@
 		"publish": [
 			{
 				"provider": "github",
-				"owner": "collaborator-ai",
+				"owner": "collabs-inc",
 				"repo": "collab-public"
 			}
 		],
