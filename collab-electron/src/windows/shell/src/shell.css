@@ -1060,7 +1060,9 @@ body.platform-win {
 	display: none;
 }
 
-.canvas-tile.tile-fullscreen .tile-btn-group {
+.canvas-tile.tile-fullscreen .tile-btn-group,
+.canvas-tile.tile-fullscreen .tile-nav-group,
+.canvas-tile.tile-fullscreen .tile-url-input {
 	-webkit-app-region: no-drag;
 	position: relative;
 	z-index: 101;
