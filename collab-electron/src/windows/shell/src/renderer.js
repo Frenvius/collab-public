@@ -1489,7 +1489,6 @@ async function init() {
 	// -- Update pill --
 
 	let updateState = { status: "idle" };
-	const isDevMode = import.meta.env.DEV;
 
 	function renderUpdatePill() {
 		if (updateState.status === "downloading") {
@@ -1527,15 +1526,6 @@ async function init() {
 			updatePill.textContent = "Update failed — retry";
 			updatePill.title =
 				updateState.error || "Update failed";
-		} else if (isDevMode) {
-			updatePill.style.display = "inline-block";
-			updatePill.classList.remove("is-downloading");
-			updatePill.classList.remove("is-error");
-			updatePill.textContent =
-				updateState.status === "checking"
-					? "Checking…"
-					: "Check for Update";
-			updatePill.title = "Click to check for updates";
 		} else {
 			updatePill.style.display = "none";
 			updatePill.classList.remove("is-downloading");
@@ -1592,12 +1582,6 @@ async function init() {
 		} else if (updateState.status === "error") {
 			updateState = { status: "idle" };
 			renderUpdatePill();
-			window.shellApi.updateCheck();
-		} else if (
-			isDevMode &&
-			(updateState.status === "idle" ||
-				updateState.status === "checking")
-		) {
 			window.shellApi.updateCheck();
 		}
 	});
