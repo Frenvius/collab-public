@@ -165,18 +165,18 @@ describe("positionTile", () => {
     const container = mockContainer();
     const tile = { x: 100, y: 200, width: 400, height: 500, zIndex: 5 };
     positionTile(container, tile, 50, 30, 1);
-    expect(container.style.left).toBe("150px");
-    expect(container.style.top).toBe("230px");
+    expect(container.style.left).toBe("153px");
+    expect(container.style.top).toBe("233px");
   });
 
   test("applies zoom to screen position", () => {
     const container = mockContainer();
     const tile = { x: 100, y: 200, width: 400, height: 500, zIndex: 1 };
     positionTile(container, tile, 0, 0, 0.5);
-    // screen x = 100 * 0.5 + 0 = 50
-    // screen y = 200 * 0.5 + 0 = 100
-    expect(container.style.left).toBe("50px");
-    expect(container.style.top).toBe("100px");
+    // screen x = (100 + 3) * 0.5 + 0 = 51.5
+    // screen y = (200 + 3) * 0.5 + 0 = 101.5
+    expect(container.style.left).toBe("51.5px");
+    expect(container.style.top).toBe("101.5px");
     expect(container.style.transform).toBe("scale(0.5)");
   });
 
@@ -184,8 +184,8 @@ describe("positionTile", () => {
     const container = mockContainer();
     const tile = { x: 0, y: 0, width: 400, height: 500, zIndex: 7 };
     positionTile(container, tile, 0, 0, 1);
-    expect(container.style.width).toBe("400px");
-    expect(container.style.height).toBe("500px");
+    expect(container.style.width).toBe("394px");
+    expect(container.style.height).toBe("494px");
     expect(container.style.zIndex).toBe("7");
   });
 
@@ -200,25 +200,25 @@ describe("positionTile", () => {
     const container = mockContainer();
     const tile = { x: 100, y: 100, width: 100, height: 100, zIndex: 1 };
     positionTile(container, tile, -50, -50, 1);
-    expect(container.style.left).toBe("50px");
-    expect(container.style.top).toBe("50px");
+    expect(container.style.left).toBe("53px");
+    expect(container.style.top).toBe("53px");
   });
 
   test("handles negative tile coordinates", () => {
     const container = mockContainer();
     const tile = { x: -100, y: -200, width: 100, height: 100, zIndex: 1 };
     positionTile(container, tile, 500, 400, 1);
-    expect(container.style.left).toBe("400px");
-    expect(container.style.top).toBe("200px");
+    expect(container.style.left).toBe("403px");
+    expect(container.style.top).toBe("203px");
   });
 
   test("zoom and pan combine correctly", () => {
     const container = mockContainer();
     const tile = { x: 200, y: 300, width: 100, height: 100, zIndex: 1 };
     positionTile(container, tile, 10, 20, 0.75);
-    // screen x = 200 * 0.75 + 10 = 160
-    // screen y = 300 * 0.75 + 20 = 245
-    expect(container.style.left).toBe("160px");
-    expect(container.style.top).toBe("245px");
+    // screen x = (200 + 3) * 0.75 + 10 = 162.25
+    // screen y = (300 + 3) * 0.75 + 20 = 247.25
+    expect(container.style.left).toBe("162.25px");
+    expect(container.style.top).toBe("247.25px");
   });
 });

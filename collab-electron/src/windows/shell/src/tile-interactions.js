@@ -1,4 +1,7 @@
 import { snapToGrid } from "./canvas-state.js";
+import { computeDragSnap, collectGluedChain } from "./magnetic.js";
+
+const SNAP_PX = 8;
 
 const MIN_SIZES = {
   term: { width: 200, height: 120 },
@@ -86,6 +89,9 @@ export function attachDrag(titleBar, tile, {
       } else {
         tile.x = startTX + dx;
         tile.y = startTY + dy;
+        const snap = computeDragSnap(tile, SNAP_PX / viewport.zoom);
+        if (snap.x !== null) tile.x = snap.x;
+        if (snap.y !== null) tile.y = snap.y;
       }
       onUpdate();
     }
@@ -314,9 +320,33 @@ export function attachResize(
       const startH = tile.height;
       const min = MIN_SIZES[tile.type] || MIN_SIZES.term;
 
+      const chains = {
+        e: dir.includes("e") ? collectGluedChain(tile, "e") : [],
+        w: dir.includes("w") ? collectGluedChain(tile, "w") : [],
+        s: dir.includes("s") ? collectGluedChain(tile, "s") : [],
+        n: dir.includes("n") ? collectGluedChain(tile, "n") : [],
+      };
+      const chainStart = new Map();
+      for (const side of ["e", "w", "s", "n"]) {
+        for (const o of chains[side]) {
+          if (!chainStart.has(o.id)) chainStart.set(o.id, { x: o.x, y: o.y });
+        }
+      }
+
       const webviews = getAllWebviews();
       for (const wv of webviews) {
         wv.webview.style.pointerEvents = "none";
+      }
+
+      function pushChains() {
+        const eDelta = tile.x + tile.width - (startX + startW);
+        const wDelta = tile.x - startX;
+        const sDelta = tile.y + tile.height - (startY + startH);
+        const nDelta = tile.y - startY;
+        for (const o of chains.e) o.x = chainStart.get(o.id).x + eDelta;
+        for (const o of chains.w) o.x = chainStart.get(o.id).x + wDelta;
+        for (const o of chains.s) o.y = chainStart.get(o.id).y + sDelta;
+        for (const o of chains.n) o.y = chainStart.get(o.id).y + nDelta;
       }
 
       function onMove(e) {
@@ -352,6 +382,7 @@ export function attachResize(
           tile.height = newH;
         }
 
+        pushChains();
         onUpdate();
       }
 
@@ -362,6 +393,9 @@ export function attachResize(
           wv.webview.style.pointerEvents = "";
         }
         snapToGrid(tile);
+        for (const side of ["e", "w", "s", "n"]) {
+          for (const o of chains[side]) snapToGrid(o);
+        }
         onUpdate();
         if (onResizeEnd) onResizeEnd(tile);
         if (onFocus) onFocus();
