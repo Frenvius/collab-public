@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { getTheme } from "./theme";
+import { ClaudePrompt } from "./ClaudePrompt";
 import "@xterm/xterm/css/xterm.css";
 import "./TerminalTab.css";
 
@@ -31,6 +32,7 @@ function TerminalTab({
 }: TerminalTabProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fitRef = useRef<FitAddon | null>(null);
+	const [termInstance, setTermInstance] = useState<Terminal | null>(null);
 
 	useEffect(() => {
 		const container = containerRef.current;
@@ -58,6 +60,7 @@ function TerminalTab({
 		term.loadAddon(fit);
 		term.open(container);
 		fitRef.current = fit;
+		setTermInstance(term);
 
 		const unicode11 = new Unicode11Addon();
 		term.loadAddon(unicode11);
@@ -387,6 +390,7 @@ function TerminalTab({
 			container.removeEventListener("drop", handleDrop);
 			window.api.offPtyData(sessionId, handleData);
 			offShellBlur();
+			setTermInstance(null);
 			term.dispose();
 			fitRef.current = null;
 		};
@@ -400,10 +404,14 @@ function TerminalTab({
 
 	return (
 		<div
-			ref={containerRef}
-			className="terminal-tab"
+			className="terminal-tab-host"
 			style={{ display: visible ? "flex" : "none" }}
-		/>
+		>
+			<div ref={containerRef} className="terminal-tab" />
+			{termInstance && (
+				<ClaudePrompt sessionId={sessionId} term={termInstance} />
+			)}
+		</div>
 	);
 }
 

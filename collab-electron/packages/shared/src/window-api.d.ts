@@ -329,6 +329,10 @@ export interface CollabApi {
   // File drop support
   getPathForFile: (file: File) => string;
   isDirectory: (filePath: string) => Promise<boolean>;
+  writeTempImage: (
+    fileName: string,
+    buffer: ArrayBuffer,
+  ) => Promise<string>;
 
   // Cross-webview drag-and-drop
   setDragPaths: (paths: string[]) => void;

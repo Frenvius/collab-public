@@ -1,6 +1,7 @@
 import { ipcMain, shell, type BrowserWindow } from "electron";
-import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, extname, join } from "node:path";
+import { readdir, readFile, stat, writeFile, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, dirname, extname, join } from "node:path";
 import fm from "front-matter";
 import { workspaceRootMatch } from "@collab/shared/path-utils";
 import {
@@ -322,6 +323,21 @@ export function registerFilesystemHandlers(
         fileName,
         Buffer.from(buffer),
       );
+    },
+  );
+
+  ipcMain.handle(
+    "fs:write-temp-image",
+    async (
+      _event,
+      fileName: string,
+      buffer: ArrayBuffer,
+    ): Promise<string> => {
+      const dir = join(tmpdir(), "collab-paste");
+      await mkdir(dir, { recursive: true });
+      const dest = join(dir, basename(fileName));
+      await writeFile(dest, Buffer.from(buffer));
+      return dest;
     },
   );
 }

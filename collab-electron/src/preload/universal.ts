@@ -330,6 +330,8 @@ contextBridge.exposeInMainWorld("api", {
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   isDirectory: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke("fs:is-directory", filePath),
+  writeTempImage: (fileName: string, buffer: ArrayBuffer): Promise<string> =>
+    ipcRenderer.invoke("fs:write-temp-image", fileName, buffer),
 
   // Cross-webview drag-and-drop
   setDragPaths: (paths: string[]) =>

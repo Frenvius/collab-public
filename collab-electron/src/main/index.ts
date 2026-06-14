@@ -832,6 +832,23 @@ app.on("web-contents-created", (_event, contents) => {
       shell.openExternal(url);
     }
   });
+
+  // Ctrl/Cmd+Alt+I opens devtools for the focused tile webview. <webview> tags
+  // don't emit before-input-event as a DOM event, so it must be handled here on
+  // the guest's webContents in the main process.
+  if (contents.getType() === "webview") {
+    contents.on("before-input-event", (_evt, input) => {
+      if (
+        input.type === "keyDown" &&
+        input.alt &&
+        (input.control || input.meta) &&
+        input.code === "KeyI"
+      ) {
+        if (contents.isDevToolsOpened()) contents.closeDevTools();
+        else contents.openDevTools({ mode: "detach" });
+      }
+    });
+  }
 });
 
 app.whenReady().then(async () => {

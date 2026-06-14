@@ -1057,7 +1057,7 @@ body.titlebar-collapsed #titlebar {
 }
 
 .canvas-tile[data-tile-type="term"] .tile-content {
-	padding: 0 2px 0 12px;
+	padding: 0;
 }
 
 /* Tile webviews are non-interactive by default */

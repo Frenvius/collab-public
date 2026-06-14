@@ -48,7 +48,11 @@ export function createWebview(name, config, container, onDndMessage) {
 		wv.addEventListener("before-input-event", (e) => {
 			const detail = e.detail;
 			if (!detail || detail.type !== "keyDown") return;
-			if (detail.meta && detail.alt && detail.code === "KeyI") {
+			if (
+				(detail.meta || detail.control) &&
+				detail.alt &&
+				detail.code === "KeyI"
+			) {
 				wv.openDevTools();
 			}
 			if (onBeforeInput) onBeforeInput(e, detail);

@@ -2,9 +2,17 @@
    TERMINAL TAB
    ============================================================================ */
 
-.terminal-tab {
+.terminal-tab-host {
+	position: relative;
 	width: 100%;
 	height: 100%;
+	flex-direction: column;
+}
+
+.terminal-tab {
+	flex: 1;
+	min-height: 0;
+	width: 100%;
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-end;
@@ -12,6 +20,12 @@
 
 .terminal-tab .xterm-viewport {
 	background: transparent !important;
+}
+
+.terminal-tab .xterm .xterm-screen canvas {
+	position: absolute;
+	left: 4px;
+	top: -4px;
 }
 
 .terminal-tab .xterm-decoration-overview-ruler {
