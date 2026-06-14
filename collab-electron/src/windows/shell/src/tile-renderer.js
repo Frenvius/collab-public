@@ -1,5 +1,7 @@
 import { splitDisplayPath } from "@collab/shared/path-utils";
 
+const TILE_GAP = 6;
+
 /**
  * Turns arbitrary input into a navigable URL.
  * If the input looks like a URL (has a scheme or a recognized TLD),
@@ -313,13 +315,14 @@ export function startInlineRename(dom, tile, onCommit) {
  * @param {number} zoom
  */
 export function positionTile(container, tile, panX, panY, zoom) {
-  const sx = tile.x * zoom + panX;
-  const sy = tile.y * zoom + panY;
+  const inset = TILE_GAP / 2;
+  const sx = (tile.x + inset) * zoom + panX;
+  const sy = (tile.y + inset) * zoom + panY;
 
   container.style.left = `${sx}px`;
   container.style.top = `${sy}px`;
-  container.style.width = `${tile.width}px`;
-  container.style.height = `${tile.height}px`;
+  container.style.width = `${Math.max(0, tile.width - TILE_GAP)}px`;
+  container.style.height = `${Math.max(0, tile.height - TILE_GAP)}px`;
   container.style.transform = `scale(${zoom})`;
   container.style.transformOrigin = "top left";
   container.style.zIndex = String(tile.zIndex);
