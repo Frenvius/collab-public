@@ -1015,6 +1015,7 @@ const ClaudePrompt = React.memo(({ sessionId, term }: ClaudePromptProps) => {
           ? `${cmd.desc} (${cmd.aliases.join(", ")})`
           : cmd.desc,
         icon: "cmd" as const,
+        takesArg: cmd.takesArg,
       }));
     },
     [],
@@ -1044,7 +1045,8 @@ const ClaudePrompt = React.memo(({ sessionId, term }: ClaudePromptProps) => {
     (item: PromptSuggestion, submit?: boolean) => {
       const name = item.display ?? "";
       const needsComplement = name === "/model";
-      const effectiveSubmit = submit && !needsComplement;
+      const noSubmit = needsComplement || item.takesArg === true;
+      const effectiveSubmit = submit && !noSubmit;
       const nextText = name + (effectiveSubmit ? "" : " ");
       const nextDraft: DraftState = { text: nextText, images: [] };
       setDraft(nextDraft);
@@ -1324,11 +1326,13 @@ const ClaudePrompt = React.memo(({ sessionId, term }: ClaudePromptProps) => {
                     style={{
                       width: `${Math.min(100, Math.max(0, parsedStatus.progress))}%`,
                       background:
-                        parsedStatus.progress >= 60
-                          ? "#f97316"
-                          : parsedStatus.progress >= 30
-                            ? "#eab308"
-                            : "#22c55e",
+                        parsedStatus.progress >= 75
+                          ? "#ef4444"
+                          : parsedStatus.progress >= 60
+                            ? "#f97316"
+                            : parsedStatus.progress >= 30
+                              ? "#eab308"
+                              : "#22c55e",
                     }}
                   />
                 </span>

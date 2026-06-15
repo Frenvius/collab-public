@@ -2,6 +2,7 @@ export type ClaudeSlashCommand = {
   name: string;
   desc: string;
   aliases?: string[];
+  takesArg?: boolean;
 };
 
 export type ClaudeModel = {
@@ -26,20 +27,28 @@ export const CLAUDE_MODELS: ClaudeModel[] = [
 
 export const CLAUDE_SLASH_COMMANDS: ClaudeSlashCommand[] = [
   { name: "/clear", desc: "New conversation", aliases: ["/reset", "/new"] },
-  { name: "/compact", desc: "Compact conversation with optional focus" },
+  {
+    name: "/compact",
+    desc: "Compact conversation with optional focus",
+    takesArg: true,
+  },
   { name: "/resume", desc: "Resume a session or open picker" },
-  { name: "/branch", desc: "Fork current conversation" },
-  { name: "/rename", desc: "Rename current session" },
+  { name: "/branch", desc: "Fork current conversation", takesArg: true },
+  { name: "/rename", desc: "Rename current session", takesArg: true },
   { name: "/exit", desc: "Exit the CLI" },
   { name: "/model", desc: "Select/change AI model" },
-  { name: "/effort", desc: "Set effort level (low/medium/high/max)" },
+  {
+    name: "/effort",
+    desc: "Set effort level (low/medium/high/max)",
+    takesArg: true,
+  },
   { name: "/config", desc: "Open Settings interface" },
   { name: "/fast", desc: "Toggle fast mode" },
   { name: "/theme", desc: "Change color theme" },
   { name: "/plan", desc: "Enter plan mode" },
   { name: "/diff", desc: "View uncommitted changes" },
   { name: "/rewind", desc: "Rewind conversation/code to prior point" },
-  { name: "/review", desc: "Review a pull request" },
+  { name: "/review", desc: "Review a pull request", takesArg: true },
   { name: "/context", desc: "Visualize context usage" },
   { name: "/cost", desc: "Show token usage stats" },
   { name: "/usage", desc: "Show plan limits/rate limits" },
@@ -52,7 +61,11 @@ export const CLAUDE_SLASH_COMMANDS: ClaudeSlashCommand[] = [
   { name: "/mcp", desc: "Manage MCP server connections" },
   { name: "/hooks", desc: "View hook configurations" },
   { name: "/simplify", desc: "Code review for quality/efficiency" },
-  { name: "/loop", desc: "Run a prompt repeatedly" },
-  { name: "/schedule", desc: "Create/manage scheduled tasks" },
+  { name: "/loop", desc: "Run a prompt repeatedly", takesArg: true },
+  {
+    name: "/schedule",
+    desc: "Create/manage scheduled tasks",
+    takesArg: true,
+  },
   { name: "/security-review", desc: "Security review of pending changes" },
 ];

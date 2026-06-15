@@ -6,6 +6,7 @@ export interface PromptSuggestion {
   display: string;
   subtext?: string;
   icon: "cmd" | "model";
+  takesArg?: boolean;
 }
 
 export interface ClaudeSuggestHandle {
