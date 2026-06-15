@@ -897,7 +897,23 @@ async function init() {
 
 	// -- Window + canvas focus listeners --
 
+	function tileIdAtPoint(x, y) {
+		const el = document.elementFromPoint(x, y);
+		const tileEl = el?.closest?.(".canvas-tile");
+		return tileEl?.dataset.tileId ?? null;
+	}
+
 	window.addEventListener("focus", () => {
+		// A click on a tile while another tile's guest holds focus is
+		// swallowed by the guest→host focus transfer, never reaching the
+		// tile's overlay. Resolve the target from the cursor so a single
+		// click activates it instead of only deactivating the current one.
+		const tileId = tileIdAtPoint(cursorX, cursorY);
+		if (tileId && tileId !== tileManager.getFocusedTileId()) {
+			tileManager.focusCanvasTile(tileId);
+			return;
+		}
+		if (tileId) return;
 		noteSurfaceFocus("shell");
 	});
 	canvasEl.addEventListener("focus", () => {
