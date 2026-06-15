@@ -6,8 +6,8 @@ const MAJOR = 80;
 
 const isMac = window.shellApi.getPlatform() === "darwin";
 
-export function shouldZoom(e, mac = isMac) {
-	return e.ctrlKey || (mac && e.metaKey);
+export function isPanModifier(e, mac = isMac) {
+	return e.ctrlKey || e.shiftKey || (mac && e.metaKey);
 }
 
 function isDark() {
@@ -198,13 +198,17 @@ export function createViewport(canvasEl, gridCanvas, tilesRef) {
 	canvasEl.addEventListener("wheel", (e) => {
 		e.preventDefault();
 
-		if (shouldZoom(e)) {
+		if (isPanModifier(e)) {
+			if (e.shiftKey) {
+				state.panX -= (e.deltaX || e.deltaY) * 1.2;
+			} else {
+				state.panX -= e.deltaX * 1.2;
+				state.panY -= e.deltaY * 1.2;
+			}
+			updateCanvas();
+		} else {
 			const rect = canvasEl.getBoundingClientRect();
 			applyZoom(e.deltaY, e.clientX - rect.left, e.clientY - rect.top);
-		} else {
-			state.panX -= e.deltaX * 1.2;
-			state.panY -= e.deltaY * 1.2;
-			updateCanvas();
 		}
 	}, { passive: false });
 

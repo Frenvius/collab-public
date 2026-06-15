@@ -5,29 +5,29 @@
  * After modularization, update imports to use ./canvas-viewport.js.
  */
 import { describe, test, expect } from "bun:test";
-import { shouldZoom } from "./canvas-viewport.js";
+import { isPanModifier } from "./canvas-viewport.js";
 
-// -- shouldZoom modifier key routing --
+// -- isPanModifier key routing (modifier pans; plain scroll zooms) --
 
-describe("shouldZoom", () => {
-  test("ctrlKey triggers zoom on any platform", () => {
-    expect(shouldZoom({ ctrlKey: true, metaKey: false }, true)).toBe(true);
-    expect(shouldZoom({ ctrlKey: true, metaKey: false }, false)).toBe(true);
+describe("isPanModifier", () => {
+  test("ctrlKey triggers pan on any platform", () => {
+    expect(isPanModifier({ ctrlKey: true, metaKey: false }, true)).toBe(true);
+    expect(isPanModifier({ ctrlKey: true, metaKey: false }, false)).toBe(true);
   });
 
-  test("metaKey triggers zoom only on macOS", () => {
-    expect(shouldZoom({ ctrlKey: false, metaKey: true }, true)).toBe(true);
-    expect(shouldZoom({ ctrlKey: false, metaKey: true }, false)).toBe(false);
+  test("metaKey triggers pan only on macOS", () => {
+    expect(isPanModifier({ ctrlKey: false, metaKey: true }, true)).toBe(true);
+    expect(isPanModifier({ ctrlKey: false, metaKey: true }, false)).toBe(false);
   });
 
-  test("no modifier does not trigger zoom", () => {
-    expect(shouldZoom({ ctrlKey: false, metaKey: false }, true)).toBe(false);
-    expect(shouldZoom({ ctrlKey: false, metaKey: false }, false)).toBe(false);
+  test("no modifier does not trigger pan", () => {
+    expect(isPanModifier({ ctrlKey: false, metaKey: false }, true)).toBe(false);
+    expect(isPanModifier({ ctrlKey: false, metaKey: false }, false)).toBe(false);
   });
 
-  test("both modifiers triggers zoom", () => {
-    expect(shouldZoom({ ctrlKey: true, metaKey: true }, true)).toBe(true);
-    expect(shouldZoom({ ctrlKey: true, metaKey: true }, false)).toBe(true);
+  test("both modifiers triggers pan", () => {
+    expect(isPanModifier({ ctrlKey: true, metaKey: true }, true)).toBe(true);
+    expect(isPanModifier({ ctrlKey: true, metaKey: true }, false)).toBe(true);
   });
 });
 

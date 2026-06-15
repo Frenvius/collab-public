@@ -266,12 +266,12 @@ const MOUSE_INPUTS: { label: string; keys: string }[] = [
   { label: "Pan Canvas", keys: "Two-Finger Swipe" },
   { label: "Pan Canvas", keys: "Middle Click + Drag" },
   { label: "Pan Canvas", keys: "Space + Drag" },
-  { label: "Scroll Canvas Vertically", keys: "Scroll" },
-  { label: "Scroll Canvas Horizontally", keys: `${SHIFT} Scroll` },
-  { label: "Zoom", keys: `${CTRL} Scroll` },
+  { label: "Zoom", keys: "Scroll" },
+  { label: "Scroll Canvas Vertically", keys: `${CTRL} Scroll` },
   ...(IS_MAC
-    ? [{ label: "Zoom", keys: `${MOD} Scroll` }]
+    ? [{ label: "Scroll Canvas Vertically", keys: `${MOD} Scroll` }]
     : []),
+  { label: "Scroll Canvas Horizontally", keys: `${SHIFT} Scroll` },
 ];
 
 function Kbd({ children }: { children: string }) {
