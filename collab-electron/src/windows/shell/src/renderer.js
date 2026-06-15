@@ -921,6 +921,15 @@ async function init() {
 	});
 	canvasEl.classList.add("canvas-focused");
 
+	// When the app regains OS focus (e.g. returning from a clipboard manager
+	// that re-pastes via a synthetic Ctrl+V), restore focus to the active
+	// tile's guest so the keystroke lands in it instead of being dropped.
+	window.shellApi.onAppFocused(() => {
+		if (settingsModalOpen) return;
+		const focused = tileManager.getFocusedTileId();
+		if (focused) tileManager.focusCanvasTile(focused);
+	});
+
 	// -- Double-click to create terminal tile --
 
 	canvasEl.addEventListener("dblclick", (e) => {

@@ -6,6 +6,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { getTheme } from "./theme";
 import { ClaudePrompt } from "./ClaudePrompt";
 import { loadHackFont } from "./fontutil";
+import { createTempImageFromBlob } from "./clipboard-util";
 import "@xterm/xterm/css/xterm.css";
 import "./TerminalTab.css";
 
@@ -100,10 +101,33 @@ function TerminalTab({
 			term.focus();
 		}
 
-		// Keep xterm focused whenever the webview window gains focus,
-		// so typing works immediately after clicking a tile title bar
-		// or programmatic webview.focus() calls.
-		const onWindowFocus = () => term.focus();
+		// Restore focus to whichever surface the user last had focused —
+		// the floating Claude prompt or the terminal — when the webview
+		// window regains focus (e.g. returning from another app that
+		// re-pastes via a synthetic Ctrl+V). Defaults to the terminal.
+		let lastFocusedSurface: "terminal" | "editor" = "terminal";
+		const onFocusIn = (ev: FocusEvent) => {
+			const target = ev.target as HTMLElement | null;
+			if (!target) return;
+			if (target.closest(".claude-prompt-editor")) {
+				lastFocusedSurface = "editor";
+			} else if (target.closest(".xterm")) {
+				lastFocusedSurface = "terminal";
+			}
+		};
+		const onWindowFocus = () => {
+			if (lastFocusedSurface === "editor") {
+				const editor = container.parentElement?.querySelector(
+					".claude-prompt-editor",
+				) as HTMLElement | null;
+				if (editor) {
+					editor.focus();
+					return;
+				}
+			}
+			term.focus();
+		};
+		document.addEventListener("focusin", onFocusIn, true);
 		window.addEventListener("focus", onWindowFocus);
 
 		if (!restored) {
@@ -127,24 +151,6 @@ function TerminalTab({
 			if (!selection) return false;
 			void navigator.clipboard.writeText(selection).catch(() => {});
 			return true;
-		};
-
-		let suppressPasteEvent = false;
-
-		const pasteFromShortcut = () => {
-			suppressPasteEvent = true;
-			void pasteClipboardText();
-		};
-
-		const pasteClipboardText = async () => {
-			try {
-				const text = await navigator.clipboard.readText();
-				if (text) {
-					window.api.ptyWrite(sessionId, text);
-				}
-			} catch {
-				// Clipboard access can fail outside a user gesture.
-			}
 		};
 
 		term.attachCustomKeyEventHandler((e) => {
@@ -193,8 +199,10 @@ function TerminalTab({
 				if (key === "c" && copySelectionToClipboard()) {
 					return false;
 				}
+				// Paste: let the native paste event fire so handlePaste can
+				// process both text and images. Returning false stops xterm
+				// from sending the keystroke through onData.
 				if (key === "v") {
-					pasteFromShortcut();
 					return false;
 				}
 				if (!IS_MAC && e.shiftKey) {
@@ -202,13 +210,11 @@ function TerminalTab({
 						return false;
 					}
 					if (key === "v") {
-						pasteFromShortcut();
 						return false;
 					}
 				}
 			}
 			if (e.type === "keydown" && e.shiftKey && e.key === "Insert") {
-				pasteFromShortcut();
 				return false;
 			}
 			if (e.type === "keydown" && e.metaKey) {
@@ -291,22 +297,48 @@ function TerminalTab({
 		};
 
 		const handlePaste = (event: ClipboardEvent) => {
-			if (suppressPasteEvent) {
-				suppressPasteEvent = false;
-				// Only suppress if clipboard has text (already sent via
-				// pasteClipboardText). If it only has images, let the
-				// event propagate so downstream handlers can process it.
-				if (event.clipboardData?.getData("text/plain")) {
-					event.preventDefault();
-					event.stopImmediatePropagation();
+			const dt = event.clipboardData;
+			if (!dt) return;
+
+			// clipboardData is only valid during the synchronous part of the
+			// handler, so read everything before any await.
+			const text = dt.getData("text/plain");
+			const imageFiles: File[] = [];
+			for (const item of Array.from(dt.items)) {
+				if (item.kind === "file" && item.type.startsWith("image/")) {
+					const file = item.getAsFile();
+					if (file) imageFiles.push(file);
 				}
-				return;
 			}
-			const text = event.clipboardData?.getData("text/plain");
-			if (!text) return;
-			window.api.ptyWrite(sessionId, text);
+
+			// Take over the paste entirely so xterm's own paste handler
+			// doesn't also write the text and double it.
 			event.preventDefault();
 			event.stopImmediatePropagation();
+
+			if (imageFiles.length === 0) {
+				if (text) window.api.ptyWrite(sessionId, text);
+				return;
+			}
+
+			// Persist each image to a temp file and feed its path to the PTY
+			// inside bracketed-paste markers, so Claude Code recognizes it as
+			// a pasted image path and attaches it instead of inserting literal
+			// text.
+			void (async () => {
+				for (const file of imageFiles) {
+					try {
+						const path = await createTempImageFromBlob(file);
+						await window.api.ptyWrite(
+							sessionId,
+							"\x1b[200~" + path + " \x1b[201~",
+						);
+					} catch {
+						// Unsupported or oversized image — skip it.
+					}
+				}
+				if (text) window.api.ptyWrite(sessionId, text);
+			})();
 		};
 
 		const handleDragOver = (event: DragEvent) => {
@@ -389,6 +421,7 @@ function TerminalTab({
 				flushData();
 			}
 			cancelAnimationFrame(rafId);
+			document.removeEventListener("focusin", onFocusIn, true);
 			window.removeEventListener("focus", onWindowFocus);
 			mediaQuery.removeEventListener("change", onThemeChange);
 			resizeObserver.disconnect();

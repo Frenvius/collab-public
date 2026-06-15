@@ -376,10 +376,10 @@ function buildAppMenu(): void {
         { role: "undo" },
         { role: "redo" },
         { type: "separator" },
-        { role: "cut" },
-        { role: "copy" },
-        { role: "paste" },
-        { role: "selectAll" },
+        { role: "cut", accelerator: "CommandOrControl+X", registerAccelerator: false },
+        { role: "copy", accelerator: "CommandOrControl+C", registerAccelerator: false },
+        { role: "paste", accelerator: "CommandOrControl+V", registerAccelerator: false },
+        { role: "selectAll", accelerator: "CommandOrControl+A", registerAccelerator: false },
         { type: "separator" },
         {
           label: "Find",
@@ -517,6 +517,15 @@ function createWindow(): void {
   };
   mainWindow.on("maximize", sendMaximizeState);
   mainWindow.on("unmaximize", sendMaximizeState);
+
+  // Fires only on real OS-level focus changes (not when a child <webview>
+  // guest takes focus within the window), so the renderer can restore focus
+  // to the active tile when returning from another app — e.g. a clipboard
+  // manager that re-pastes via a synthetic Ctrl+V.
+  mainWindow.on("focus", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send("shell:app-focused");
+  });
 
   mainWindow.on("move", debouncedSaveWindowState);
   mainWindow.on("resize", debouncedSaveWindowState);

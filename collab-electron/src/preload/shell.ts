@@ -103,6 +103,13 @@ contextBridge.exposeInMainWorld("shellApi", {
       ipcRenderer.removeListener("shell:shortcut", handler);
   },
 
+  onAppFocused: (cb: () => void) => {
+    const handler = () => cb();
+    ipcRenderer.on("shell:app-focused", handler);
+    return () =>
+      ipcRenderer.removeListener("shell:app-focused", handler);
+  },
+
   onBrowserTileFocusUrl: (cb: (webContentsId: number) => void) => {
     const handler = (_event: unknown, id: number) => cb(id);
     ipcRenderer.on("browser-tile:focus-url", handler);
