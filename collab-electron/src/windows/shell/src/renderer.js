@@ -707,6 +707,12 @@ async function init() {
 				"tile-list:focus", tile?.id || null,
 			);
 			window.shellApi.notifyTileFocused(tile?.id || null);
+			if (tile?.id) {
+				const badge = tileManager
+					?.getTileDOMs()?.get(tile.id)
+					?.container?.querySelector(".tile-notif-badge");
+				if (badge) badge.remove();
+			}
 		},
 		onTileDblClick(tile) {
 			edgeIndicators.panToTile(tile);
@@ -763,11 +769,57 @@ async function init() {
 
 	// -- Notification navigate (click on protected overlay toast) --
 
-	window.shellApi.onNotificationNavigate((tileId) => {
-		const tile = getTile(tileId);
+	function normalizeCwd(p) {
+		if (!p) return "";
+		return p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+	}
+
+	function findTileByCwd(cwd) {
+		if (!cwd) return null;
+		const norm = normalizeCwd(cwd);
+		for (const t of tiles) {
+			if (t.type === "term" && normalizeCwd(t.cwd) === norm) return t;
+			if (t.type === "term" && normalizeCwd(t.autoTitle) === norm) return t;
+		}
+		return null;
+	}
+
+	function resolveTile(data) {
+		if (data.tileId) {
+			const t = getTile(data.tileId);
+			if (t) return t;
+		}
+		if (data.cwd) return findTileByCwd(data.cwd);
+		return null;
+	}
+
+	function clearNotifBadge(tileId) {
+		const dom = tileManager.getTileDOMs().get(tileId);
+		if (!dom) return;
+		const badge = dom.container.querySelector(".tile-notif-badge");
+		if (badge) badge.remove();
+	}
+
+	window.shellApi.onNotificationNavigate((data) => {
+		const tile = resolveTile(data);
 		if (!tile) return;
+		clearNotifBadge(tile.id);
 		edgeIndicators.panToTile(tile);
 		tileManager.focusCanvasTile(tile.id);
+	});
+
+	window.shellApi.onNotificationBadge((data) => {
+		const tile = resolveTile(data);
+		if (!tile) return;
+		const dom = tileManager.getTileDOMs().get(tile.id);
+		if (!dom) return;
+		if (!dom.container.querySelector(".tile-notif-badge")) {
+			const dot = document.createElement("span");
+			dot.className = "tile-notif-badge";
+			const group = dom.titleBar.querySelector(".tile-title-group");
+			if (group) group.appendChild(dot);
+			else dom.titleBar.appendChild(dot);
+		}
 	});
 
 	// -- Agent panel init (after tileManager, since getAllWebviews references it) --
@@ -1805,11 +1857,13 @@ async function init() {
 	let currentWorkspaceId = null;
 	let currentTabId = null;
 
+	tileManager.beginTransition();
 	const savedState = await window.shellApi.canvasLoadState();
 	if (savedState) {
 		await applyCanvasState(savedState);
-		tileManager.saveCanvasDebounced();
 	}
+	tileManager.endTransition();
+	if (savedState) tileManager.saveCanvasDebounced();
 
 	{
 		const list = await window.shellApi.workspaceMgrList();

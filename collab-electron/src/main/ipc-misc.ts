@@ -2,7 +2,6 @@ import {
   ipcMain,
   dialog,
   Menu,
-  Notification,
   shell,
   type BrowserWindow,
 } from "electron";
@@ -12,6 +11,8 @@ import * as agentActivity from "./agent-activity";
 import { registerMethod } from "./json-rpc-server";
 import { DISABLE_GIT_REPLAY } from "@collab/shared/replay-types";
 import { workspaceForFile } from "./ipc-workspace";
+import { showOverlayNotification } from "./notification-overlay";
+import { getTileIdForPty } from "./claude-state";
 
 interface IpcContext {
   mainWindow: () => BrowserWindow | null;
@@ -296,20 +297,29 @@ export function registerMiscHandlers(
       const p = params as {
         title?: string;
         body: string;
+        pty_session_id?: string;
+        tile_id?: string;
       };
-      const note = new Notification({
+      const tileId = p.tile_id
+        ?? (p.pty_session_id ? getTileIdForPty(p.pty_session_id) : null);
+      showOverlayNotification({
         title: p.title ?? "Collaborator",
         body: p.body,
+        tileId,
       });
-      note.show();
       return { ok: true };
     },
     {
-      description: "Show a native macOS notification",
+      description:
+        "Show an in-app notification (invisible to screen capture)",
       params: {
         title:
           "(optional) Notification title, defaults to 'Collaborator'",
         body: "Notification body text",
+        pty_session_id:
+          "(optional) PTY session ID to associate with a tile",
+        tile_id:
+          "(optional) Tile ID to associate notification with directly",
       },
     },
   );

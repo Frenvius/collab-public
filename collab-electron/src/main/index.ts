@@ -54,6 +54,7 @@ import { listTerminalTargets } from "./terminal-target";
 import { readSessionMeta, writeSessionMeta } from "./tmux";
 import { registerBrowserIpc } from "./ipc-browser";
 import { registerAgentIpc } from "./acp-agent";
+import { initNotificationOverlay } from "./notification-overlay";
 
 // macOS apps launched from Finder don't inherit the user's shell
 // LANG, so child processes (tmux, shells) default to ASCII.
@@ -920,6 +921,7 @@ app.whenReady().then(async () => {
   registerToggleShortcuts(mainWindow!);
   initAgentResume();
   initClaudeState(mainWindow!);
+  initNotificationOverlay(mainWindow!);
 
   initMainAnalytics();
   trackEvent("app_launched");

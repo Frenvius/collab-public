@@ -1357,6 +1357,22 @@ body.titlebar-collapsed #titlebar {
 	pointer-events: none;
 }
 
+/* Notification badge on tile title bar */
+.tile-notif-badge {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: rgb(245, 158, 11);
+	flex-shrink: 0;
+	margin-left: 4px;
+	animation: notif-badge-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes notif-badge-pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
+
 /* Space+click pan: tiles don't intercept clicks during pan mode */
 #panel-viewer.space-held .canvas-tile {
 	pointer-events: none;

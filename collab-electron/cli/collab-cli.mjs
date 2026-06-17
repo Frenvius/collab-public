@@ -363,6 +363,36 @@ async function cmdBrowserInfo(args) {
   console.log(pretty(result));
 }
 
+// --- notify ---------------------------------------------------------------
+
+async function cmdNotify(args) {
+  if (args.length === 0) die("notify requires a message body");
+  const params = { body: args[0] };
+
+  const rest = args.slice(1);
+  while (rest.length > 0) {
+    const flag = rest.shift();
+    switch (flag) {
+      case "--title":
+        if (rest.length === 0) die("--title requires a value");
+        params.title = rest.shift();
+        break;
+      case "--pty":
+        if (rest.length === 0) die("--pty requires a session id");
+        params.pty_session_id = rest.shift();
+        break;
+      case "--tile":
+        if (rest.length === 0) die("--tile requires a tile id");
+        params.tile_id = rest.shift();
+        break;
+      default:
+        die(`unknown option: ${flag}`);
+    }
+  }
+
+  await rpcCall("app.notify", params);
+}
+
 // --- usage ----------------------------------------------------------------
 
 function usage() {
@@ -389,6 +419,7 @@ COMMANDS
   browser eval <id> <expression>    Run JS and return result
   browser wait <id> [--timeout ms]  Wait for page load
   browser info <id>                 Get URL, title, load state
+  notify <body> [options]            Show an in-app notification
   help, --help                       Show this help
 
 TILE CREATE OPTIONS
@@ -409,6 +440,11 @@ TERMINAL READ OPTIONS
 
 BROWSER SCREENSHOT OPTIONS
   --out <path>    Save screenshot to file instead of printing base64
+
+NOTIFY OPTIONS
+  --title <text>  Notification title (default: "Collaborator")
+  --tile <id>     Tile ID to link notification to (use $COLLAB_TILE_ID)
+  --pty <id>      PTY session ID to link notification to a tile
 
 COORDINATES
   All coordinates are in grid units.
@@ -489,6 +525,11 @@ try {
         case "info":       await cmdBrowserInfo(rest); break;
         default: die(`unknown browser subcommand: ${sub}`);
       }
+      break;
+    }
+    case "notify": {
+      const rest = argv.slice(1);
+      await cmdNotify(rest);
       break;
     }
     default:

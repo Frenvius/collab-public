@@ -14,6 +14,7 @@ import { ipcMain } from "electron";
 import { COLLAB_DIR } from "./paths";
 import { getBinding } from "./agent-resume";
 import { listLiveSidecarSessions } from "./pty";
+import { showOverlayNotification } from "./notification-overlay";
 
 export interface ClaudeStructuredState {
   model?: string;
@@ -149,8 +150,23 @@ function readSessionStatus(session: TrackedSession): void {
     const raw = readFileSync(session.sessionFilePath, "utf8");
     const parsed = JSON.parse(raw);
     if (parsed?.status && parsed.status !== session.state.status) {
+      const prev = session.state.status;
       session.state.status = parsed.status;
       sendState(session.ptySessionId, session.state);
+
+      if (prev === "busy" && parsed.status === "idle") {
+        const label = session.tileId;
+        const binding = getBinding(session.tileId);
+        const cwd = binding?.cwd;
+        const title = cwd
+          ? cwd.replace(/\\/g, "/").split("/").pop() ?? cwd
+          : label;
+        showOverlayNotification({
+          title: title ?? "Terminal",
+          body: "Claude finished",
+          tileId: session.tileId,
+        });
+      }
     }
   } catch {}
 }
@@ -278,13 +294,76 @@ async function pollAll(): Promise<void> {
   }
 }
 
+export function getTileIdForPty(ptySessionId: string): string | null {
+  return tracked.get(ptySessionId)?.tileId ?? null;
+}
+
+const directTracked = new Map<
+  string,
+  { status: string }
+>();
+
+function pollClaudeSessionFiles(): void {
+  if (!existsSync(SESSIONS_DIR)) return;
+
+  const activePids = new Set<string>();
+
+  try {
+    for (const file of readdirSync(SESSIONS_DIR)) {
+      if (!file.endsWith(".json")) continue;
+      const full = join(SESSIONS_DIR, file);
+      try {
+        const raw = readFileSync(full, "utf8");
+        const parsed = JSON.parse(raw);
+        if (!parsed?.status || !parsed?.pid) continue;
+
+        const key = String(parsed.pid);
+        activePids.add(key);
+        const prev = directTracked.get(key);
+
+        if (prev && prev.status !== parsed.status) {
+          const cwd: string | null = parsed.cwd ?? null;
+          const title = cwd
+            ? cwd.replace(/\\/g, "/").split("/").pop() ?? "Terminal"
+            : "Terminal";
+
+          if (prev.status === "busy" && parsed.status === "idle") {
+            showOverlayNotification({
+              title,
+              body: "Claude finished",
+              tileId: null,
+              cwd,
+            });
+          } else if (parsed.status === "waiting") {
+            showOverlayNotification({
+              title,
+              body: "Claude needs your attention",
+              tileId: null,
+              cwd,
+            });
+          }
+        }
+        directTracked.set(key, { status: parsed.status });
+      } catch {}
+    }
+  } catch {}
+
+  for (const [pid] of directTracked) {
+    if (!activePids.has(pid)) directTracked.delete(pid);
+  }
+}
+
 export function initClaudeState(window: BrowserWindow): void {
   mainWindow = window;
 
   if (!existsSync(CLAUDE_DIR)) return;
 
   void pollAll();
-  const timer = setInterval(() => void pollAll(), POLL_MS);
+  pollClaudeSessionFiles();
+  const timer = setInterval(() => {
+    void pollAll();
+    pollClaudeSessionFiles();
+  }, POLL_MS);
 
   ipcMain.handle(
     "claude:get-state",

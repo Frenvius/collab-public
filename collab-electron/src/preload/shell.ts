@@ -458,4 +458,33 @@ contextBridge.exposeInMainWorld("shellApi", {
     canGoBack: boolean; canGoForward: boolean;
   }> =>
     ipcRenderer.invoke("browser:info", { webContentsId }),
+
+  notifyTileFocused: (tileId: string | null) =>
+    ipcRenderer.send("shell:tile-focused", tileId),
+
+  onNotificationNavigate: (
+    cb: (data: { tileId: string | null; cwd: string | null }) => void,
+  ) => {
+    const handler = (_event: unknown, data: unknown) =>
+      cb(data as never);
+    ipcRenderer.on("shell:notification-navigate", handler);
+    return () =>
+      ipcRenderer.removeListener(
+        "shell:notification-navigate",
+        handler,
+      );
+  },
+
+  onNotificationBadge: (
+    cb: (data: { tileId: string | null; cwd: string | null }) => void,
+  ) => {
+    const handler = (_event: unknown, data: unknown) =>
+      cb(data as never);
+    ipcRenderer.on("shell:notification-badge", handler);
+    return () =>
+      ipcRenderer.removeListener(
+        "shell:notification-badge",
+        handler,
+      );
+  },
 });

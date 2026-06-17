@@ -50,6 +50,10 @@ export default defineConfig({
         input: {
           universal: resolve(__dirname, "src/preload/universal.ts"),
           shell: resolve(__dirname, "src/preload/shell.ts"),
+          "notification-overlay": resolve(
+            __dirname,
+            "src/preload/notification-overlay.ts",
+          ),
         },
         output: {
           format: "cjs",
@@ -92,6 +96,10 @@ export default defineConfig({
           "agent-chat": resolve(
             __dirname,
             "src/windows/agent-chat/index.html",
+          ),
+          "notification-overlay": resolve(
+            __dirname,
+            "src/windows/notification-overlay/index.html",
           ),
         },
       },
