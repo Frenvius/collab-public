@@ -51,7 +51,7 @@ import {
 import { stopImageWorker } from "./image-service";
 import { installCli } from "./cli-installer";
 import { listTerminalTargets } from "./terminal-target";
-import { readSessionMeta } from "./tmux";
+import { readSessionMeta, writeSessionMeta } from "./tmux";
 import { registerBrowserIpc } from "./ipc-browser";
 import { registerAgentIpc } from "./acp-agent";
 
@@ -728,6 +728,18 @@ ipcMain.handle(
 ipcMain.handle(
   "pty:read-meta",
   (_event, sessionId: string) => readSessionMeta(sessionId),
+);
+
+ipcMain.on(
+  "pty:update-cwd",
+  (_event, { sessionId, cwd }: { sessionId: string; cwd: string }) => {
+    const meta = readSessionMeta(sessionId);
+    if (meta) {
+      meta.cwd = cwd;
+      if (meta.cwdHostPath !== undefined) meta.cwdHostPath = cwd;
+      writeSessionMeta(sessionId, meta);
+    }
+  },
 );
 
 ipcMain.handle(

@@ -231,7 +231,8 @@ export function createTileManager({
 		if (tile.ptySessionId) {
 			params.set("sessionId", tile.ptySessionId);
 			params.set("restored", "1");
-		} else if (tile.cwd) {
+		}
+		if (tile.cwd) {
 			params.set("cwd", tile.cwd);
 		}
 		const qs = params.toString();
@@ -270,6 +271,9 @@ export function createTileManager({
 					tile.autoTitle = cwd;
 					updateTileTitle(tileDOMs.get(tile.id), tile);
 					saveCanvasDebounced();
+					if (tile.ptySessionId) {
+						window.shellApi.ptyUpdateCwd(tile.ptySessionId, cwd);
+					}
 					if (onTerminalCwdChanged) {
 						onTerminalCwdChanged(cwd);
 					}

@@ -496,8 +496,12 @@ async function init() {
 
 	function syncTerminalTileMeta(tile, meta) {
 		if (!meta) return;
-		tile.cwd = meta.cwdHostPath || meta.cwd || tile.cwd;
-		tile.autoTitle = meta.cwdHostPath || meta.cwd || tile.autoTitle;
+		if (!tile.cwd) {
+			tile.cwd = meta.cwdHostPath || meta.cwd;
+		}
+		if (!tile.autoTitle) {
+			tile.autoTitle = meta.cwdHostPath || meta.cwd;
+		}
 		const dom = tileManager.getTileDOMs().get(tile.id);
 		if (dom) {
 			updateTileTitle(dom, tile);

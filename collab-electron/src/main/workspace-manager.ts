@@ -27,6 +27,7 @@ interface TileState {
   url?: string | null;
   workspacePath?: string;
   ptySessionId?: string;
+  cwd?: string;
   userTitle?: string;
   autoTitle?: string;
   zIndex: number;

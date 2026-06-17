@@ -314,6 +314,10 @@ contextBridge.exposeInMainWorld("shellApi", {
   ptyKillSession: (sessionId: string): Promise<void> =>
     ipcRenderer.invoke("pty:kill", { sessionId }),
 
+  ptyUpdateCwd: (sessionId: string, cwd: string): void => {
+    ipcRenderer.send("pty:update-cwd", { sessionId, cwd });
+  },
+
   ptyWrite: (sessionId: string, data: string): void => {
     ipcRenderer.send("pty:write", { sessionId, data });
   },
