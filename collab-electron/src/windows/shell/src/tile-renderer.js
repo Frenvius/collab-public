@@ -172,6 +172,19 @@ export function createTileDOM(tile, callbacks) {
     btnGroup.appendChild(fsBtn);
   }
 
+  if (tile.type === "term" && callbacks.onRestart) {
+    const restartBtn = document.createElement("button");
+    restartBtn.className = "tile-action-btn tile-restart-btn";
+    restartBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3v4h-4"/><path d="M12.36 10a5 5 0 1 1-.96-5.36L13 7"/></svg>`;
+    restartBtn.title = "Restart terminal";
+    restartBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+    restartBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      callbacks.onRestart(tile.id);
+    });
+    btnGroup.appendChild(restartBtn);
+  }
+
   const closeBtn = document.createElement("button");
   closeBtn.className = "tile-action-btn tile-close-btn";
   closeBtn.innerHTML = "&times;";

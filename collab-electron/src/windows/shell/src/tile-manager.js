@@ -538,6 +538,21 @@ export function createTileManager({
 			onToggleFullscreen: (id) => {
 				toggleTileFullscreen(id);
 			},
+			onRestart: (id) => {
+				const t = getTile(id);
+				if (!t || t.type !== "term") return;
+				const d = tileDOMs.get(id);
+				if (d?.webview) {
+					d.webview.remove();
+					d.webview = null;
+				}
+				if (t.ptySessionId) {
+					window.shellApi.ptyKillSession(t.ptySessionId);
+					t.ptySessionId = null;
+				}
+				spawnTerminalWebview(t, true);
+				saveCanvasImmediate();
+			},
 			onRename: (id) => {
 				const t = getTile(id);
 				const d = tileDOMs.get(id);
