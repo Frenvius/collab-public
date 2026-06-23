@@ -70,8 +70,10 @@ export function createFrameManager({
 			const bar = frameBars.get(f.id);
 			const el = frameDOMs.get(f.id);
 			if (!bar || !el) continue;
-			const outside = fid != null &&
-				!containedTiles(f).some((t) => t.id === fid);
+			const contains = fid != null &&
+				containedTiles(f).some((t) => t.id === fid);
+			el.style.zIndex = contains ? "1" : "";
+			const outside = fid != null && !contains;
 			const recede = outside && focusedDom &&
 				rectsOverlap(
 					bar.getBoundingClientRect(),
