@@ -1,5 +1,5 @@
 const ZOOM_MIN = 0.25;
-const ZOOM_MAX = 1;
+let ZOOM_MAX = 1;
 const ZOOM_RUBBER_BAND_K = 400;
 const CELL = 20;
 const MAJOR = 80;
@@ -236,6 +236,13 @@ export function createViewport(canvasEl, gridCanvas, tilesRef) {
 			updateCanvas();
 		},
 		setOnResize(cb) { onResize = cb; },
+		setMaxZoom(v) {
+			ZOOM_MAX = typeof v === "number" && v >= 1 ? v : 1;
+			if (state && state.zoom > ZOOM_MAX) {
+				state.zoom = ZOOM_MAX;
+				updateCanvas();
+			}
+		},
 		updateCanvas,
 		redrawGrid: drawGrid,
 		applyZoom,

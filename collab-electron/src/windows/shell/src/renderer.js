@@ -150,6 +150,16 @@ window.shellApi.onPrefChanged((key, value) => {
 
 const viewport = createViewport(canvasEl, gridCanvas, tiles);
 
+window.shellApi.getPref("maxZoom").then((v) => {
+	viewport.setMaxZoom(typeof v === "number" ? v : 1);
+});
+
+window.shellApi.onPrefChanged((key, value) => {
+	if (key === "maxZoom") {
+		viewport.setMaxZoom(typeof value === "number" ? value : 1);
+	}
+});
+
 /** Convert in-memory panX/panY state to a center-point for persistence. */
 function toCenterPointState(state) {
 	const { panX, panY, zoom } = state.viewport;

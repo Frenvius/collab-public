@@ -45,11 +45,13 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  step = 1,
   onChange,
 }: {
   value: number;
   min?: number;
   max?: number;
+  step?: number;
   onChange: (value: number) => void;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -63,9 +65,10 @@ function Slider({
       if (!track) return;
       const rect = track.getBoundingClientRect();
       const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      onChange(Math.round(min + ratio * (max - min)));
+      const raw = min + ratio * (max - min);
+      onChange(Math.min(max, Math.round(raw / step) * step));
     },
-    [min, max, onChange],
+    [min, max, step, onChange],
   );
 
   const onPointerDown = useCallback(
@@ -181,6 +184,7 @@ function ThemeToggle({
 function AppearancePane() {
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [canvasOpacity, setCanvasOpacity] = useState(0);
+  const [maxZoom, setMaxZoom] = useState(100);
 
   useEffect(() => {
     api.getPref("theme")
@@ -194,6 +198,11 @@ function AppearancePane() {
         if (typeof v === "number") setCanvasOpacity(v);
       })
       .catch(() => { });
+    api.getPref("maxZoom")
+      .then((v) => {
+        if (typeof v === "number") setMaxZoom(Math.round(v * 100));
+      })
+      .catch(() => { });
   }, []);
 
   async function handleThemeChange(mode: ThemeMode) {
@@ -204,6 +213,11 @@ function AppearancePane() {
   async function handleOpacityChange(value: number) {
     setCanvasOpacity(value);
     await api.setPref("canvasOpacity", value);
+  }
+
+  async function handleMaxZoomChange(value: number) {
+    setMaxZoom(value);
+    await api.setPref("maxZoom", value / 100);
   }
 
   return (
@@ -234,6 +248,25 @@ function AppearancePane() {
           value={canvasOpacity}
           onChange={(v) => { void handleOpacityChange(v); }}
         />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">Maximum zoom</p>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {maxZoom}%
+          </span>
+        </div>
+        <Slider
+          value={maxZoom}
+          min={100}
+          max={125}
+          step={5}
+          onChange={(v) => { void handleMaxZoomChange(v); }}
+        />
+        <p className="text-xs text-muted-foreground">
+          Above 100% terminal text may look blurry.
+        </p>
       </div>
     </div>
   );
