@@ -1168,6 +1168,7 @@ body.titlebar-collapsed #titlebar {
 	align-items: center;
 	gap: 4px;
 	min-width: 0;
+	margin-right: auto;
 }
 
 .tile-title-text {
@@ -1217,6 +1218,28 @@ body.titlebar-collapsed #titlebar {
 
 .tile-action-btn:hover {
 	opacity: 0.8;
+}
+
+.tile-color-btn {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	border: 1px solid rgba(127, 127, 127, 0.6);
+	background: rgba(127, 127, 127, 0.3);
+	opacity: 0.6;
+	padding: 0;
+}
+
+.tile-color-btn:hover {
+	opacity: 1;
+}
+
+.tile-color-input {
+	position: absolute;
+	width: 0;
+	height: 0;
+	opacity: 0;
+	pointer-events: none;
 }
 
 .tile-close-btn {

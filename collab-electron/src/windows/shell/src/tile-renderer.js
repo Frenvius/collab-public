@@ -95,13 +95,21 @@ export function applyTileColor(dom, tile) {
  * dragging and once more on commit. The input lives offscreen and is removed
  * after the dialog closes.
  */
-export function pickColor(initial, onPick) {
+export function pickColor(initial, onPick, anchor) {
   const input = document.createElement("input");
   input.type = "color";
   input.value = initial || "#3b82f6";
   input.style.position = "fixed";
-  input.style.left = "8px";
-  input.style.bottom = "8px";
+  if (anchor) {
+    const r = anchor.getBoundingClientRect();
+    input.style.left = `${r.left}px`;
+    input.style.top = `${r.bottom}px`;
+  } else {
+    input.style.left = "8px";
+    input.style.bottom = "8px";
+  }
+  input.style.width = "0";
+  input.style.height = "0";
   input.style.opacity = "0";
   input.style.pointerEvents = "none";
   document.body.appendChild(input);
@@ -140,6 +148,35 @@ export function createTileDOM(tile, callbacks) {
 
   const titleBar = document.createElement("div");
   titleBar.className = "tile-title-bar";
+
+  if (callbacks.onSetColor) {
+    const colorBtn = document.createElement("button");
+    colorBtn.className = "tile-action-btn tile-color-btn";
+    colorBtn.title = "Tile color";
+    if (tile.color) colorBtn.style.background = tile.color;
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = tile.color || "#3b82f6";
+    colorInput.className = "tile-color-input";
+    colorBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+    colorBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      colorInput.click();
+    });
+    colorInput.addEventListener("input", () => {
+      colorBtn.style.background = colorInput.value;
+      callbacks.onSetColor(tile.id, colorInput.value);
+    });
+    colorBtn.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!callbacks.onResetColor) return;
+      colorBtn.style.background = "";
+      callbacks.onResetColor(tile.id);
+    });
+    titleBar.appendChild(colorBtn);
+    titleBar.appendChild(colorInput);
+  }
 
   const titleText = document.createElement("span");
   titleText.className = "tile-title-text";
