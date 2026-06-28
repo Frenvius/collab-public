@@ -12,9 +12,30 @@ import {
 
 type ThemeMode = "light" | "dark" | "system";
 
+interface Binding {
+  code: string;
+  ctrl?: boolean;
+  meta?: boolean;
+  alt?: boolean;
+  shift?: boolean;
+}
+
+interface EffectiveBinding {
+  action: string;
+  label: string;
+  binding: Binding | null;
+  isDefault: boolean;
+}
+
 interface SettingsApi {
   getPref: (key: string) => Promise<unknown>;
   setPref: (key: string, value: unknown) => Promise<void>;
+  getKeybindings: () => Promise<EffectiveBinding[]>;
+  setKeybinding: (
+    action: string,
+    binding: Binding | null,
+  ) => Promise<EffectiveBinding[]>;
+  resetKeybindings: (action: string | null) => Promise<EffectiveBinding[]>;
   setNativeContext: (
     enabled: boolean,
   ) => Promise<{ ok: boolean; error?: string }>;
@@ -275,16 +296,8 @@ function AppearancePane() {
 const IS_MAC = window.api.getPlatform() === "darwin";
 
 const MOD = IS_MAC ? "\u2318" : "Ctrl+";
-const SHIFT = IS_MAC ? "\u21E7" : "Shift+";
-const CTRL = IS_MAC ? "\u2303" : "Ctrl+";
-const ALT = IS_MAC ? "\u2325" : "Alt+";
 
-const SHORTCUTS: { label: string; keys: string }[] = [
-  { label: "Settings", keys: `${MOD} ,` },
-  { label: "Find", keys: `${MOD} K` },
-  { label: "Toggle Navigator", keys: `${MOD} \\` },
-  { label: "Toggle Terminal List", keys: `${MOD} \`` },
-  { label: "Open Workspace", keys: `${SHIFT} ${MOD} O` },
+const FIXED_SHORTCUTS: { label: string; keys: string }[] = [
   { label: "Zoom In", keys: `${MOD} =` },
   { label: "Zoom Out", keys: `${MOD} -` },
   { label: "Actual Size", keys: `${MOD} 0` },
@@ -292,23 +305,74 @@ const SHORTCUTS: { label: string; keys: string }[] = [
     label: "Toggle Full Screen",
     keys: IS_MAC ? "\u2303 \u2318 F" : "F11",
   },
-  { label: "Focus Tile Left", keys: `${ALT} ←` },
-  { label: "Focus Tile Right", keys: `${ALT} →` },
-  { label: "Focus Tile Up", keys: `${ALT} ↑` },
-  { label: "Focus Tile Down", keys: `${ALT} ↓` },
 ];
 
-const MOUSE_INPUTS: { label: string; keys: string }[] = [
+const FIXED_MOUSE: { label: string; keys: string }[] = [
   { label: "Pan Canvas", keys: "Two-Finger Swipe" },
   { label: "Pan Canvas", keys: "Middle Click + Drag" },
   { label: "Pan Canvas", keys: "Space + Drag" },
-  { label: "Zoom", keys: "Scroll" },
-  { label: "Scroll Canvas Vertically", keys: `${CTRL} Scroll` },
-  ...(IS_MAC
-    ? [{ label: "Scroll Canvas Vertically", keys: `${MOD} Scroll` }]
-    : []),
-  { label: "Scroll Canvas Horizontally", keys: `${SHIFT} Scroll` },
 ];
+
+type ModName = "ctrl" | "shift" | "alt" | "meta";
+
+const MOD_SYMBOLS: Record<ModName, string> = {
+  meta: IS_MAC ? "\u2318" : "Win+",
+  ctrl: IS_MAC ? "\u2303" : "Ctrl+",
+  alt: IS_MAC ? "\u2325" : "Alt+",
+  shift: IS_MAC ? "\u21E7" : "Shift+",
+};
+
+const MOUSE_MOD_OPTIONS: { value: ModName; label: string }[] = [
+  { value: "ctrl", label: IS_MAC ? "\u2303 Control" : "Ctrl" },
+  { value: "shift", label: IS_MAC ? "\u21E7 Shift" : "Shift" },
+  { value: "alt", label: IS_MAC ? "\u2325 Option" : "Alt" },
+  { value: "meta", label: IS_MAC ? "\u2318 Command" : "Win" },
+];
+
+const CODE_LABELS: Record<string, string> = {
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  Backslash: "\\",
+  Backquote: "`",
+  Minus: "-",
+  Equal: "=",
+  ArrowLeft: "\u2190",
+  ArrowRight: "\u2192",
+  ArrowUp: "\u2191",
+  ArrowDown: "\u2193",
+  Space: "Space",
+  Enter: "\u23CE",
+  Tab: "Tab",
+};
+
+function codeLabel(code: string): string {
+  if (CODE_LABELS[code]) return CODE_LABELS[code]!;
+  if (code.startsWith("Key")) return code.slice(3);
+  if (code.startsWith("Digit")) return code.slice(5);
+  return code;
+}
+
+function formatBinding(b: Binding | null): string {
+  if (!b) return "Disabled";
+  let prefix = "";
+  if (b.meta) prefix += MOD_SYMBOLS.meta;
+  if (b.ctrl) prefix += MOD_SYMBOLS.ctrl;
+  if (b.alt) prefix += MOD_SYMBOLS.alt;
+  if (b.shift) prefix += MOD_SYMBOLS.shift;
+  return `${prefix}${codeLabel(b.code)}`;
+}
+
+const MODIFIER_CODES = new Set([
+  "ControlLeft",
+  "ControlRight",
+  "ShiftLeft",
+  "ShiftRight",
+  "AltLeft",
+  "AltRight",
+  "MetaLeft",
+  "MetaRight",
+]);
 
 function Kbd({ children }: { children: string }) {
   return (
@@ -341,6 +405,296 @@ function ShortcutList({ items }: { items: { label: string; keys: string }[] }) {
           <Kbd>{keys}</Kbd>
         </div>
       ))}
+    </div>
+  );
+}
+
+function bindingFromEvent(e: KeyboardEvent): Binding {
+  return {
+    code: e.code,
+    ctrl: e.ctrlKey,
+    meta: e.metaKey,
+    alt: e.altKey,
+    shift: e.shiftKey,
+  };
+}
+
+function KeybindingRow({
+  item,
+  capturing,
+  onCapture,
+  onReset,
+  onDisable,
+}: {
+  item: EffectiveBinding;
+  capturing: boolean;
+  onCapture: () => void;
+  onReset: () => void;
+  onDisable: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center justify-between py-2"
+      style={{
+        borderBottom:
+          "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+      }}
+    >
+      <span className="text-sm">{item.label}</span>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onCapture}
+          className="cursor-pointer rounded px-1.5 py-0.5 text-xs font-mono"
+          style={{
+            backgroundColor: capturing
+              ? "var(--accent)"
+              : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+            color: "var(--foreground)",
+            minWidth: "3.5rem",
+            textAlign: "center",
+          }}
+        >
+          {capturing ? "Press keys…" : formatBinding(item.binding)}
+        </button>
+        {!item.isDefault && (
+          <button
+            type="button"
+            onClick={onReset}
+            aria-label="Reset to default"
+            className="cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+          >
+            Reset
+          </button>
+        )}
+        {item.binding && (
+          <button
+            type="button"
+            onClick={onDisable}
+            aria-label="Disable shortcut"
+            className="cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KeybindingEditor() {
+  const [bindings, setBindings] = useState<EffectiveBinding[]>([]);
+  const [capturing, setCapturing] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getKeybindings()
+      .then((b) => setBindings(b))
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    if (!capturing) return;
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        setCapturing(null);
+        return;
+      }
+      if (MODIFIER_CODES.has(e.code)) return;
+      const action = capturing;
+      setCapturing(null);
+      api.setKeybinding(action, bindingFromEvent(e))
+        .then((b) => setBindings(b))
+        .catch(() => { });
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [capturing]);
+
+  function reset(action: string) {
+    api.resetKeybindings(action)
+      .then((b) => setBindings(b))
+      .catch(() => { });
+  }
+
+  function disable(action: string) {
+    api.setKeybinding(action, null)
+      .then((b) => setBindings(b))
+      .catch(() => { });
+  }
+
+  const conflicts = new Set<string>();
+  const seen = new Map<string, string>();
+  for (const b of bindings) {
+    if (!b.binding) continue;
+    const key = formatBinding(b.binding);
+    if (seen.has(key)) {
+      conflicts.add(b.action);
+      conflicts.add(seen.get(key)!);
+    } else {
+      seen.set(key, b.action);
+    }
+  }
+
+  return (
+    <div>
+      <div className="space-y-0">
+        {bindings.map((item) => (
+          <KeybindingRow
+            key={item.action}
+            item={item}
+            capturing={capturing === item.action}
+            onCapture={() =>
+              setCapturing(capturing === item.action ? null : item.action)}
+            onReset={() => reset(item.action)}
+            onDisable={() => disable(item.action)}
+          />
+        ))}
+      </div>
+      {conflicts.size > 0 && (
+        <p className="pt-2 text-xs" style={{ color: "#f59e0b" }}>
+          Two shortcuts share the same keys — only one will fire.
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          api.resetKeybindings(null)
+            .then((b) => setBindings(b))
+            .catch(() => { });
+        }}
+        className="mt-3 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+      >
+        Reset all to defaults
+      </button>
+    </div>
+  );
+}
+
+type ZoomMod = ModName | "none";
+
+const OPTION_STYLE = {
+  backgroundColor: "var(--background)",
+  color: "var(--foreground)",
+};
+
+interface MouseMods {
+  vertical: ModName;
+  horizontal: ModName;
+  zoom: ZoomMod;
+}
+
+const DEFAULT_MOUSE_MODS: MouseMods = {
+  vertical: "ctrl",
+  horizontal: "shift",
+  zoom: "none",
+};
+
+function ModSelect({
+  value,
+  onChange,
+  allowNone,
+}: {
+  value: ZoomMod;
+  onChange: (m: ZoomMod) => void;
+  allowNone?: boolean;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as ZoomMod)}
+      className="cursor-pointer rounded px-1.5 py-0.5 text-xs"
+      style={{
+        backgroundColor: "var(--background)",
+        color: "var(--foreground)",
+        border:
+          "1px solid color-mix(in srgb, var(--foreground) 15%, transparent)",
+      }}
+    >
+      {allowNone && (
+        <option value="none" style={OPTION_STYLE}>
+          None
+        </option>
+      )}
+      {MOUSE_MOD_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value} style={OPTION_STYLE}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function MouseModEditor() {
+  const [mods, setMods] = useState<MouseMods>(DEFAULT_MOUSE_MODS);
+
+  useEffect(() => {
+    api.getPref("mouseMods")
+      .then((v) => {
+        if (v && typeof v === "object") {
+          setMods({ ...DEFAULT_MOUSE_MODS, ...(v as Partial<MouseMods>) });
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  function update(next: MouseMods) {
+    setMods(next);
+    void api.setPref("mouseMods", next);
+  }
+
+  return (
+    <div className="space-y-0">
+      <div
+        className="flex items-center justify-between py-2"
+        style={{
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+        }}
+      >
+        <span className="text-sm">Zoom</span>
+        <div className="flex items-center gap-1.5">
+          <ModSelect
+            value={mods.zoom}
+            allowNone
+            onChange={(m) => update({ ...mods, zoom: m })}
+          />
+          <Kbd>Scroll</Kbd>
+        </div>
+      </div>
+      <div
+        className="flex items-center justify-between py-2"
+        style={{
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+        }}
+      >
+        <span className="text-sm">Scroll Canvas Vertically</span>
+        <div className="flex items-center gap-1.5">
+          <ModSelect
+            value={mods.vertical}
+            onChange={(m) => update({ ...mods, vertical: m as ModName })}
+          />
+          <Kbd>Scroll</Kbd>
+        </div>
+      </div>
+      <div
+        className="flex items-center justify-between py-2"
+        style={{
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+        }}
+      >
+        <span className="text-sm">Scroll Canvas Horizontally</span>
+        <div className="flex items-center gap-1.5">
+          <ModSelect
+            value={mods.horizontal}
+            onChange={(m) => update({ ...mods, horizontal: m as ModName })}
+          />
+          <Kbd>Scroll</Kbd>
+        </div>
+      </div>
     </div>
   );
 }
@@ -613,13 +967,25 @@ function ControlsPane() {
     <div className="space-y-6 p-6">
       <div className="space-y-1">
         <h2 className="text-base font-semibold">Keyboard Shortcuts</h2>
+        <p className="text-sm text-muted-foreground">
+          Click a shortcut to rebind it. ✕ disables it; Esc cancels.
+        </p>
       </div>
-      <ShortcutList items={SHORTCUTS} />
+      <KeybindingEditor />
 
       <div className="space-y-1 pt-2">
         <h2 className="text-base font-semibold">Mouse Controls</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose which modifier each scroll gesture uses.
+        </p>
       </div>
-      <ShortcutList items={MOUSE_INPUTS} />
+      <MouseModEditor />
+
+      <div className="space-y-1 pt-2">
+        <h2 className="text-base font-semibold">Fixed</h2>
+      </div>
+      <ShortcutList items={FIXED_SHORTCUTS} />
+      <ShortcutList items={FIXED_MOUSE} />
     </div>
   );
 }

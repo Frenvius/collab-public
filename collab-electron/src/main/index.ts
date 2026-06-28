@@ -27,6 +27,14 @@ import {
   type WindowState,
   type TerminalTarget,
 } from "./config";
+import {
+  effectiveBindings,
+  inputMatches,
+  bindingToAccelerator,
+  setOverride,
+  clearOverride,
+  type Binding,
+} from "./keybindings";
 import { registerIpcHandlers, setMainWindow } from "./ipc";
 import { registerCanvasRpc } from "./canvas-rpc";
 import { registerIntegrationsIpc } from "./integrations";
@@ -188,62 +196,23 @@ function sendShortcut(action: string): void {
   mainWindow?.webContents.send("shell:shortcut", action);
 }
 
-const cmdOrCtrl = (input: Electron.Input): boolean =>
-  (input.meta || input.control) && !input.alt;
-const shiftCmdOrCtrl = (input: Electron.Input): boolean =>
-  input.shift && (input.meta || input.control);
-const altCmdOrCtrl = (input: Electron.Input): boolean =>
-  input.alt && (input.meta || input.control);
-const ctrlOnly = (input: Electron.Input): boolean =>
-  input.control && !input.meta;
-
-interface ShortcutEntry {
-  modifier: (input: Electron.Input) => boolean;
+interface RuntimeShortcut {
   action: string;
+  binding: Binding;
 }
 
-const TOGGLE_SHORTCUTS: Record<string, ShortcutEntry[]> = {
-  KeyB: [
-    { modifier: cmdOrCtrl, action: "sidebar-files" },
-  ],
-  Backslash: [{ modifier: cmdOrCtrl, action: "sidebar-files" }],
-  Comma: [{ modifier: cmdOrCtrl, action: "toggle-settings" }],
-  KeyO: [{ modifier: shiftCmdOrCtrl, action: "add-workspace" }],
-  KeyK: [{ modifier: cmdOrCtrl, action: "focus-file-search" }],
-  KeyN: [{ modifier: cmdOrCtrl, action: "new-tile" }],
-  KeyW: [{ modifier: cmdOrCtrl, action: "close-tile" }],
-  KeyT: [{ modifier: shiftCmdOrCtrl, action: "reopen-tile" }],
-  ArrowRight: [{ modifier: altCmdOrCtrl, action: "focus-tile-right" }],
-  ArrowLeft: [{ modifier: altCmdOrCtrl, action: "focus-tile-left" }],
-  ArrowUp: [{ modifier: altCmdOrCtrl, action: "focus-tile-up" }],
-  ArrowDown: [{ modifier: altCmdOrCtrl, action: "focus-tile-down" }],
-  KeyF: [{ modifier: altCmdOrCtrl, action: "toggle-fullscreen-tile" }],
-};
+let runtimeShortcuts: RuntimeShortcut[] = [];
 
-const TOGGLE_SHORTCUT_KEYS: Record<string, ShortcutEntry[]> = {
-  ",": TOGGLE_SHORTCUTS.Comma!,
-  o: TOGGLE_SHORTCUTS.KeyO!,
-  k: TOGGLE_SHORTCUTS.KeyK!,
-  b: TOGGLE_SHORTCUTS.KeyB!,
-  n: TOGGLE_SHORTCUTS.KeyN!,
-  w: TOGGLE_SHORTCUTS.KeyW!,
-  t: TOGGLE_SHORTCUTS.KeyT!,
-  f: TOGGLE_SHORTCUTS.KeyF!,
-};
-
-function normalizeShortcutKey(key: string | undefined): string | null {
-  if (!key) return null;
-  return key.length === 1 ? key.toLowerCase() : key;
+function refreshRuntimeShortcuts(): void {
+  runtimeShortcuts = effectiveBindings(config, process.platform === "darwin")
+    .filter((e): e is typeof e & { binding: Binding } => e.binding !== null)
+    .map((e) => ({ action: e.action, binding: e.binding }));
 }
 
 function resolveToggleShortcut(
   input: Electron.Input,
-): ShortcutEntry | undefined {
-  const candidates = TOGGLE_SHORTCUTS[input.code]
-    ?? (normalizeShortcutKey(input.key)
-      ? TOGGLE_SHORTCUT_KEYS[normalizeShortcutKey(input.key)!]
-      : undefined);
-  return candidates?.find((s) => s.modifier(input));
+): RuntimeShortcut | undefined {
+  return runtimeShortcuts.find((s) => inputMatches(input, s.binding));
 }
 
 function attachShortcutListener(target: WebContents): void {
@@ -326,6 +295,11 @@ function applyZoomToAll(level: number): void {
   }
 }
 
+function accelFor(action: string, fallback: string): string {
+  const entry = runtimeShortcuts.find((s) => s.action === action);
+  return entry ? bindingToAccelerator(entry.binding) : fallback;
+}
+
 function buildAppMenu(): void {
   const isMac = process.platform === "darwin";
   const fullScreenAccelerator = isMac ? "Ctrl+Cmd+F" : "F11";
@@ -340,7 +314,7 @@ function buildAppMenu(): void {
               { type: "separator" as const },
               {
                 label: "Settings\u2026",
-                accelerator: "CommandOrControl+,",
+                accelerator: accelFor("toggle-settings", "CommandOrControl+,"),
                 registerAccelerator: false,
                 click: () => sendShortcut("toggle-settings"),
               } as Electron.MenuItemConstructorOptions,
@@ -361,26 +335,26 @@ function buildAppMenu(): void {
       submenu: [
         {
           label: "New Tile",
-          accelerator: "CommandOrControl+N",
+          accelerator: accelFor("new-tile", "CommandOrControl+N"),
           registerAccelerator: false,
           click: () => sendShortcut("new-tile"),
         },
         {
           label: "Close Tile",
-          accelerator: "CommandOrControl+W",
+          accelerator: accelFor("close-tile", "CommandOrControl+W"),
           registerAccelerator: false,
           click: () => sendShortcut("close-tile"),
         },
         {
           label: "Reopen Closed Tile",
-          accelerator: "CommandOrControl+Shift+T",
+          accelerator: accelFor("reopen-tile", "CommandOrControl+Shift+T"),
           registerAccelerator: false,
           click: () => sendShortcut("reopen-tile"),
         },
         { type: "separator" },
         {
           label: "Open Workspace\u2026",
-          accelerator: "CommandOrControl+Shift+O",
+          accelerator: accelFor("add-workspace", "CommandOrControl+Shift+O"),
           registerAccelerator: false,
           click: () => sendShortcut("add-workspace"),
         },
@@ -399,7 +373,7 @@ function buildAppMenu(): void {
         { type: "separator" },
         {
           label: "Find",
-          accelerator: "CommandOrControl+K",
+          accelerator: accelFor("focus-file-search", "CommandOrControl+K"),
           registerAccelerator: false,
           click: () => sendShortcut("focus-file-search"),
         },
@@ -410,7 +384,7 @@ function buildAppMenu(): void {
       submenu: [
         {
           label: "Toggle Files",
-          accelerator: "CommandOrControl+B",
+          accelerator: accelFor("sidebar-files", "CommandOrControl+B"),
           registerAccelerator: false,
           click: () => sendShortcut("sidebar-files"),
         },
@@ -635,6 +609,32 @@ ipcMain.handle(
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("pref:changed", key, value);
     }
+  },
+);
+
+ipcMain.handle("keybindings:get", () =>
+  effectiveBindings(config, process.platform === "darwin"),
+);
+
+ipcMain.handle(
+  "keybindings:set",
+  (_event, action: string, binding: Binding | null) => {
+    setOverride(config, action, binding);
+    saveConfig(config);
+    refreshRuntimeShortcuts();
+    buildAppMenu();
+    return effectiveBindings(config, process.platform === "darwin");
+  },
+);
+
+ipcMain.handle(
+  "keybindings:reset",
+  (_event, action: string | null) => {
+    clearOverride(config, action);
+    saveConfig(config);
+    refreshRuntimeShortcuts();
+    buildAppMenu();
+    return effectiveBindings(config, process.platform === "darwin");
   },
 );
 
@@ -968,6 +968,7 @@ app.whenReady().then(async () => {
     console.error("Sidecar failed to start:", err);
   }
 
+  refreshRuntimeShortcuts();
   buildAppMenu();
   createWindow();
   registerAgentIpc(mainWindow!, config);

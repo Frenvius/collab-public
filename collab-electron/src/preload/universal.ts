@@ -170,6 +170,11 @@ contextBridge.exposeInMainWorld("api", {
   getPref: (key: string) => ipcRenderer.invoke("pref:get", key),
   setPref: (key: string, value: unknown) =>
     ipcRenderer.invoke("pref:set", key, value),
+  getKeybindings: () => ipcRenderer.invoke("keybindings:get"),
+  setKeybinding: (action: string, binding: unknown) =>
+    ipcRenderer.invoke("keybindings:set", action, binding),
+  resetKeybindings: (action: string | null) =>
+    ipcRenderer.invoke("keybindings:reset", action),
   setNativeContext: (enabled: boolean) =>
     ipcRenderer.invoke("native-context:set", enabled),
   listTerminalTargets: () =>

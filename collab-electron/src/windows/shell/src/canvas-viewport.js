@@ -6,8 +6,40 @@ const MAJOR = 80;
 
 const isMac = window.shellApi.getPlatform() === "darwin";
 
+let mouseMods = { vertical: "ctrl", horizontal: "shift", zoom: "none" };
+
+try {
+	window.shellApi.getPref("mouseMods").then((v) => {
+		if (v && typeof v === "object") mouseMods = { ...mouseMods, ...v };
+	}).catch(() => {});
+	window.shellApi.onPrefChanged((key, val) => {
+		if (key === "mouseMods" && val && typeof val === "object") {
+			mouseMods = { ...mouseMods, ...val };
+		}
+	});
+} catch {}
+
+function modActive(e, mod) {
+	if (mod === "ctrl") return !!e.ctrlKey;
+	if (mod === "shift") return !!e.shiftKey;
+	if (mod === "alt") return !!e.altKey;
+	if (mod === "meta") return !!e.metaKey;
+	return false;
+}
+
 export function isPanModifier(e, mac = isMac) {
-	return e.ctrlKey || e.shiftKey || (mac && e.metaKey);
+	return (
+		modActive(e, mouseMods.vertical) ||
+		modActive(e, mouseMods.horizontal) ||
+		(mac && e.metaKey)
+	);
+}
+
+function wheelAction(e, mac = isMac) {
+	if (modActive(e, mouseMods.horizontal)) return "horizontal";
+	if (mouseMods.zoom !== "none" && modActive(e, mouseMods.zoom)) return "zoom";
+	if (modActive(e, mouseMods.vertical) || (mac && e.metaKey)) return "pan";
+	return mouseMods.zoom === "none" ? "zoom" : "pan";
 }
 
 function isDark() {
@@ -198,13 +230,13 @@ export function createViewport(canvasEl, gridCanvas, tilesRef) {
 	canvasEl.addEventListener("wheel", (e) => {
 		e.preventDefault();
 
-		if (isPanModifier(e)) {
-			if (e.shiftKey) {
-				state.panX -= (e.deltaX || e.deltaY) * 1.2;
-			} else {
-				state.panX -= e.deltaX * 1.2;
-				state.panY -= e.deltaY * 1.2;
-			}
+		const action = wheelAction(e);
+		if (action === "horizontal") {
+			state.panX -= (e.deltaX || e.deltaY) * 1.2;
+			updateCanvas();
+		} else if (action === "pan") {
+			state.panX -= e.deltaX * 1.2;
+			state.panY -= e.deltaY * 1.2;
 			updateCanvas();
 		} else {
 			const rect = canvasEl.getBoundingClientRect();
