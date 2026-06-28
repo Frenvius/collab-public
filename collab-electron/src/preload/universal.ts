@@ -620,6 +620,18 @@ contextBridge.exposeInMainWorld("api", {
   sendToHost: (channel: string, ...args: unknown[]) =>
     ipcRenderer.sendToHost(channel, ...args),
 
+  // Sticky-note toolbar commands forwarded from the shell into the note webview
+  onStickyCommand: (
+    cb: (msg: { action: string; value?: string }) => void,
+  ) => {
+    const handler = (
+      _event: unknown,
+      msg: { action: string; value?: string },
+    ) => cb(msg);
+    ipcRenderer.on("sticky:command", handler);
+    return () => ipcRenderer.removeListener("sticky:command", handler);
+  },
+
   // Terminal list channels (shell renderer → webview via webview.send)
   onTileListMessage: (
     cb: (channel: string, ...args: unknown[]) => void,
@@ -761,6 +773,19 @@ contextBridge.exposeInMainWorld("api", {
       );
   },
 });
+
+// Sticky notes paint their paper from the shell tile behind a transparent
+// webview. Flag the document as early as possible (before React) so the page
+// never flashes its opaque app background over the note color.
+function markStickyMode() {
+  if (
+    new URLSearchParams(location.search).get("tileMode") === "sticky"
+  ) {
+    document.documentElement.classList.add("sticky-mode");
+  }
+}
+if (document.documentElement) markStickyMode();
+else document.addEventListener("DOMContentLoaded", markStickyMode);
 
 // Forward ctrl+wheel (trackpad pinch) from tile webviews to the canvas
 window.addEventListener("wheel", (e) => {

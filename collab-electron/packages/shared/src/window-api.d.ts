@@ -513,6 +513,11 @@ export interface CollabApi {
   sendToHost: (channel: string, ...args: unknown[]) => void;
   onTileListMessage: (cb: TileListMessageCb) => Unsubscribe;
 
+  // Sticky-note toolbar commands (shell → note webview)
+  onStickyCommand: (
+    cb: (msg: { action: string; value?: string }) => void,
+  ) => Unsubscribe;
+
   // Git replay
   startReplay: (params: { workspacePath: string }) => Promise<boolean>;
   stopReplay: () => Promise<void>;

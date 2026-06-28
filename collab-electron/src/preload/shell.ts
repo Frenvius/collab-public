@@ -165,6 +165,9 @@ contextBridge.exposeInMainWorld("shellApi", {
     error?: string;
   }> => ipcRenderer.invoke("vscode:server-url"),
 
+  createNote: (workspacePath?: string): Promise<string> =>
+    ipcRenderer.invoke("note:create", workspacePath),
+
   canvasLoadState: () => ipcRenderer.invoke("canvas:load-state"),
   canvasSaveState: (state: unknown) =>
     ipcRenderer.invoke("canvas:save-state", state),

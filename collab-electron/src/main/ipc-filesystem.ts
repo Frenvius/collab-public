@@ -3,6 +3,7 @@ import { readdir, readFile, stat, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, extname, join } from "node:path";
 import fm from "front-matter";
+import { COLLAB_DIR } from "./paths";
 import { workspaceRootMatch } from "@collab/shared/path-utils";
 import {
   countTreeFiles,
@@ -191,6 +192,30 @@ export function registerFilesystemHandlers(
     ];
     ctx.forwardToWebview("nav", "fs-changed", event);
     ctx.forwardToWebview("viewer", "fs-changed", event);
+  });
+
+  ipcMain.handle("note:create", async (_event, workspacePath?: string) => {
+    const root = workspacePath || ctx.workspaces()[0] || COLLAB_DIR;
+    const dir = join(root, "Notes");
+    await mkdir(dir, { recursive: true });
+    const existing = new Set(
+      (await readdir(dir).catch(() => [])).map((n) => n.toLowerCase()),
+    );
+    let name = "Untitled.md";
+    if (existing.has(name.toLowerCase())) {
+      let n = 2;
+      while (existing.has(`Untitled ${n}.md`.toLowerCase())) n++;
+      name = `Untitled ${n}.md`;
+    }
+    const filePath = join(dir, name);
+    await writeFile(filePath, '---\ntype: "note"\n---\n', "utf-8");
+    ctx.trackEvent("note_created");
+    const event = [
+      { dirPath: dir, changes: [{ path: filePath, type: 1 }] },
+    ];
+    ctx.forwardToWebview("nav", "fs-changed", event);
+    ctx.forwardToWebview("viewer", "fs-changed", event);
+    return filePath;
   });
 
   ipcMain.handle(

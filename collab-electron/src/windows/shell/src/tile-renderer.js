@@ -22,6 +22,35 @@ function resolveInput(raw) {
   return `https://www.google.com/search?q=${encodeURIComponent(s)}`;
 }
 
+/** Darken (amount<0) or lighten (amount>0) a hex color by a 0..1 ratio. */
+function shade(hex, amount) {
+  const c = hex.replace("#", "");
+  if (c.length < 6) return hex;
+  const adjust = (v) => {
+    const n = Math.round(v + (amount < 0 ? v * amount : (255 - v) * amount));
+    return Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+  };
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return `#${adjust(r)}${adjust(g)}${adjust(b)}`;
+}
+
+/**
+ * Sticky note palette keyed by paper (body) color. Each entry pins the exact
+ * header strip and foreground text. Unknown colors fall back to derivation.
+ */
+export const STICKY_PALETTE = {
+  "#fef8c4": { header: "#f0eab8", text: "#5c4036" },
+  "#f8bad0": { header: "#e8b0c4", text: "#880e4e" },
+  "#badefa": { header: "#b0d0ec", text: "#0c46a0" },
+  "#c8e6c8": { header: "#bcd8bc", text: "#1a5e20" },
+  "#fee0b2": { header: "#f0d2a6", text: "#e44400" },
+  "#e0bee6": { header: "#d2b2d8", text: "#4a148c" },
+  "#2c2c2c": { header: "#424242", text: "#fefefe" },
+  "#36464e": { header: "#4a5860", text: "#fefefe" },
+};
+
 /** Pick black or white text for legibility on a given hex background. */
 function contrastColor(hex) {
   const c = hex.replace("#", "");
@@ -40,6 +69,16 @@ function contrastColor(hex) {
  */
 export function applyTileColor(dom, tile) {
   const color = tile.color;
+  if (tile.sticky) {
+    const body = color || "#fef8c4";
+    const p = STICKY_PALETTE[body.toLowerCase()];
+    const header = p ? p.header : shade(body, -0.06);
+    dom.container.style.background = body;
+    dom.container.style.borderColor = p ? p.header : shade(body, -0.12);
+    dom.titleBar.style.background = header;
+    dom.titleBar.style.color = p ? p.text : contrastColor(body);
+    return;
+  }
   if (!color) {
     dom.titleBar.style.background = "";
     dom.titleBar.style.color = "";
@@ -97,6 +136,7 @@ export function createTileDOM(tile, callbacks) {
   container.className = "canvas-tile";
   container.dataset.tileId = tile.id;
   container.dataset.tileType = tile.type;
+  if (tile.sticky) container.classList.add("sticky-note");
 
   const titleBar = document.createElement("div");
   titleBar.className = "tile-title-bar";

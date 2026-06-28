@@ -33,6 +33,8 @@ export function createTileManager({
 	getFrameForTile = () => null,
 	onFocusChange = () => {},
 }) {
+	const STICKY_DEFAULT_COLOR = "#fef8c4";
+
 	/** @type {Map<string, {container: HTMLElement, contentArea: HTMLElement, titleText: HTMLElement, webview?: HTMLElement}>} */
 	const tileDOMs = new Map();
 	let saveTimer = null;
@@ -74,6 +76,7 @@ export function createTileManager({
 				autoTitle: t.autoTitle,
 				target: t.target,
 				color: t.color,
+				sticky: t.sticky,
 			})),
 			frames: getFrames(),
 			viewport: {
@@ -717,11 +720,17 @@ export function createTileManager({
 		} else {
 			const wv = document.createElement("webview");
 			const viewerConfig = configs.viewer;
-			const mode = type === "note" ? "note" : "code";
-			wv.setAttribute(
-				"src",
-				`${viewerConfig.src}?tilePath=${encodeURIComponent(filePath)}&tileMode=${mode}`,
-			);
+			const mode = tile.sticky
+				? "sticky"
+				: type === "note" ? "note" : "code";
+			let src =
+				`${viewerConfig.src}?tilePath=${encodeURIComponent(filePath)}&tileMode=${mode}`;
+			if (tile.sticky) {
+				src +=
+					`&color=${encodeURIComponent(tile.color || "")}` +
+					`&tileId=${encodeURIComponent(tile.id)}`;
+			}
+			wv.setAttribute("src", src);
 			wv.setAttribute("preload", viewerConfig.preload);
 			wv.setAttribute(
 				"webpreferences",
@@ -730,15 +739,36 @@ export function createTileManager({
 			wv.style.width = "100%";
 			wv.style.height = "100%";
 			wv.style.border = "none";
+			// Sticky paper color is painted by the shell tile; the note webview
+			// stays transparent so the color never blanks out on reload.
+			if (tile.sticky) wv.style.backgroundColor = "transparent";
 
 			dom.contentArea.appendChild(wv);
 			dom.webview = wv;
+
+			if (tile.sticky) {
+				wv.addEventListener("ipc-message", (e) => {
+					if (e.channel === "note-color" &&
+						typeof e.args?.[0] === "string") {
+						tile.color = e.args[0];
+						applyTileColor(dom, tile);
+						saveCanvasImmediate();
+					}
+				});
+			}
 
 			wv.addEventListener("dom-ready", () => {});
 		}
 
 		saveCanvasImmediate();
 		return tile;
+	}
+
+	function createStickyNote(cx, cy, filePath) {
+		return createFileTile("note", cx, cy, filePath, {
+			sticky: true,
+			color: STICKY_DEFAULT_COLOR,
+		});
 	}
 
 	function createGraphTile(cx, cy, folderPath, workspacePath) {
@@ -819,7 +849,7 @@ export function createTileManager({
 				wv.style.height = "100%";
 				wv.style.border = "none";
 				wv.addEventListener("did-finish-load", () => overlay.remove());
-				wv.addEventListener("did-fail-load", (e) => { 
+				wv.addEventListener("did-fail-load", (e) => {
 					if (e.isMainFrame === false) return;
 					if (e.errorCode === -3) return;
 					fail(
@@ -953,6 +983,8 @@ export function createTileManager({
 						width: saved.width,
 						height: saved.height,
 						zIndex: saved.zIndex,
+						color: saved.color,
+						sticky: saved.sticky,
 					},
 				);
 			}
@@ -1027,6 +1059,22 @@ export function createTileManager({
 		}
 	}
 
+	function setTileColor(id, color) {
+		const t = getTile(id);
+		const d = tileDOMs.get(id);
+		if (!t || !d) return;
+		t.color = color;
+		applyTileColor(d, t);
+		saveCanvasImmediate();
+	}
+
+	function reapplyColors() {
+		for (const t of tiles) {
+			const d = tileDOMs.get(t.id);
+			if (d) applyTileColor(d, t);
+		}
+	}
+
 	function renameTile(id, newTitle) {
 		const t = getTile(id);
 		if (!t) return;
@@ -1042,6 +1090,9 @@ export function createTileManager({
 
 	return {
 		createCanvasTile,
+		createStickyNote,
+		reapplyColors,
+		setTileColor,
 		closeCanvasTile,
 		focusCanvasTile,
 		blurCanvasTileGuest,

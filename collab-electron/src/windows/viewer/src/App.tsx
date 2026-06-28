@@ -20,6 +20,7 @@ import { isPdfFile } from "@collab/shared/pdf";
 import { toCollabFileUrl } from "@collab/shared/collab-file-url";
 import { extractCoverImageUrl } from "@collab/shared/extract-cover-image";
 import { ImageView } from "@collab/components/ImageView/ImageView";
+import { StickyView } from "./StickyView";
 import "./styles/App.css";
 
 const MARKDOWN_EXTENSIONS = new Set([
@@ -104,6 +105,17 @@ export default function App() {
 	const [isTileMode] = useState(
 		() => new URLSearchParams(window.location.search).has("tilePath"),
 	);
+
+	const [stickyColor] = useState(() => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("tileMode") !== "sticky") return null;
+		return params.get("color") || "#fef8c4";
+	});
+	const isSticky = stickyColor !== null;
+
+	useEffect(() => {
+		if (isSticky) document.documentElement.classList.add("sticky-mode");
+	}, [isSticky]);
 
 	// Tile mode: load file directly from query params
 	useEffect(() => {
@@ -542,6 +554,21 @@ export default function App() {
 	const headerPath = showFileLoading
 		? selectedPath
 		: displayedPath;
+
+	if (isSticky) {
+		return (
+			<div className="sticky-root">
+				{hasMarkdownFile && viewerItem ? (
+					<StickyView
+						item={viewerItem}
+						onTextChange={saveViewerText}
+						initialColor={stickyColor}
+						theme={theme}
+					/>
+				) : null}
+			</div>
+		);
+	}
 
 	return (
 		<div className={`app${navVisible ? " nav-visible" : ""}`}>

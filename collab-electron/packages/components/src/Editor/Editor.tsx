@@ -362,6 +362,8 @@ interface EditorProps {
 	onTextChange: (text: string) => Promise<WriteResult | void>;
 	theme: "light" | "dark";
 	editingDisabled?: boolean;
+	placeholder?: string;
+	onEditor?: (editor: unknown) => void;
 }
 
 export default function Editor({
@@ -369,6 +371,8 @@ export default function Editor({
 	onTextChange,
 	theme,
 	editingDisabled,
+	placeholder,
+	onEditor,
 }: EditorProps) {
 	const [lastBlockContent, setLastBlockContent] = useState<Map<string, string>>(
 		new Map(),
@@ -393,7 +397,7 @@ export default function Editor({
 			...locale,
 			placeholders: {
 				...locale.placeholders,
-				emptyDocument: "Start typing or press '/' for more",
+				emptyDocument: placeholder ?? "Start typing or press '/' for more",
 				default: "",
 				heading: "",
 				checkListItem: "",
@@ -417,6 +421,10 @@ export default function Editor({
 			extensions: [CustomTypography],
 		},
 	});
+
+	useEffect(() => {
+		onEditor?.(editor);
+	}, [editor, onEditor]);
 
 	const checkForDividerPattern = useCallback(async () => {
 		const selection = editor.getTextCursorPosition();

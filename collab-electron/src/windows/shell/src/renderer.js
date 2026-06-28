@@ -59,6 +59,9 @@ if (IS_WINDOWS) {
 
 // -- Edge toggles: reveal on hover near their position --
 
+let cursorX = 0;
+let cursorY = 0;
+
 {
 	const REVEAL_PAD = 70;
 	const hoverToggles = [
@@ -78,8 +81,6 @@ if (IS_WINDOWS) {
 		);
 	};
 
-	let cursorX = 0;
-	let cursorY = 0;
 	let revealScheduled = false;
 	const updateReveal = () => {
 		revealScheduled = false;
@@ -133,7 +134,11 @@ document.getElementById("alpha-dismiss").addEventListener("click", (e) => {
 
 // -- Dark mode --
 
-initDarkMode(() => viewport.updateCanvas());
+let onThemeChangeReapply = () => {};
+initDarkMode(() => {
+	viewport.updateCanvas();
+	onThemeChangeReapply();
+});
 
 let broadcastCanvasOpacity = () => {};
 const DEFAULT_CANVAS_OPACITY = 50;
@@ -770,11 +775,100 @@ async function init() {
 					?.container?.querySelector(".tile-notif-badge");
 				if (badge) badge.remove();
 			}
+			updateStickyToolbar(tile);
 		},
 		onTileDblClick(tile) {
 			edgeIndicators.panToTile(tile);
 		},
 	});
+
+	onThemeChangeReapply = () => tileManager.reapplyColors();
+
+	// -- Sticky note toolbar (shell-level, drives focused note via IPC) --
+
+	const STICKY_TOOLBAR_COLORS = [
+		"#fef8c4", "#f8bad0", "#badefa", "#c8e6c8",
+		"#fee0b2", "#e0bee6", "#2c2c2c", "#36464e",
+	];
+	const STICKY_TOOLBAR_BTNS = [
+		["bold", "B"], ["italic", "I"], ["strike", "S"],
+		["code", "</>"], ["heading", "H"], ["bulletList", "•"],
+		["numberedList", "1."], ["checkList", "☑"],
+	];
+
+	let stickyToolbarEl = null;
+	let focusedStickyId = null;
+
+	function stickyCmd(action, value) {
+		if (!focusedStickyId) return;
+		const dom = tileManager.getTileDOMs().get(focusedStickyId);
+		dom?.webview?.send("sticky:command", { action, value });
+	}
+
+	function updateStickyToolbar(tile) {
+		if (!stickyToolbarEl) return;
+		if (tile && tile.sticky) {
+			focusedStickyId = tile.id;
+			stickyToolbarEl.classList.remove("hidden");
+			const active = (tile.color || "").toLowerCase();
+			for (const s of stickyToolbarEl.querySelectorAll(".stb-swatch")) {
+				s.classList.toggle(
+					"active", (s.dataset.color || "").toLowerCase() === active,
+				);
+			}
+		} else {
+			focusedStickyId = null;
+			stickyToolbarEl.classList.add("hidden");
+		}
+	}
+
+	function hideStickyToolbar() {
+		updateStickyToolbar(null);
+	}
+
+	function buildStickyToolbar() {
+		const bar = document.createElement("div");
+		bar.id = "sticky-toolbar";
+		bar.className = "hidden";
+
+		const swatches = document.createElement("div");
+		swatches.className = "stb-swatches";
+		for (const c of STICKY_TOOLBAR_COLORS) {
+			const b = document.createElement("button");
+			b.className = "stb-swatch";
+			b.style.background = c;
+			b.dataset.color = c;
+			b.title = c;
+			b.addEventListener("mousedown", (e) => e.preventDefault());
+			b.addEventListener("click", () => {
+				if (!focusedStickyId) return;
+				tileManager.setTileColor(focusedStickyId, c);
+				stickyCmd("color", c);
+				updateStickyToolbar(tileManager.getFocusedTile());
+			});
+			swatches.appendChild(b);
+		}
+		bar.appendChild(swatches);
+
+		const divider = document.createElement("div");
+		divider.className = "stb-divider";
+		bar.appendChild(divider);
+
+		for (const [action, label] of STICKY_TOOLBAR_BTNS) {
+			const b = document.createElement("button");
+			b.className = "stb-btn";
+			b.textContent = label;
+			b.title = action;
+			b.addEventListener("mousedown", (e) => e.preventDefault());
+			b.addEventListener("click", () => stickyCmd(action));
+			bar.appendChild(b);
+		}
+
+		document.body.appendChild(bar);
+		return bar;
+	}
+
+	stickyToolbarEl = buildStickyToolbar();
 
 	// -- Frame manager --
 
@@ -1118,10 +1212,20 @@ async function init() {
 		const selected = await window.shellApi.showContextMenu([
 			{ id: "new-terminal", label: "New terminal tile" },
 			{ id: "new-browser", label: "New browser tile" },
+			{ id: "new-note", label: "New note" },
 			{ id: "new-frame", label: "New frame" },
 		]);
 
-		if (selected === "new-frame") {
+		if (selected === "new-note") {
+			try {
+				const filePath = await window.shellApi.createNote();
+				tileManager.createStickyNote(cx, cy, filePath);
+				tileManager.saveCanvasImmediate();
+				minimap.update();
+			} catch (err) {
+				console.error("[new-note] failed:", err);
+			}
+		} else if (selected === "new-frame") {
 			frameManager.createFrame(cx, cy);
 			tileManager.saveCanvasImmediate();
 			minimap.update();
@@ -1140,6 +1244,15 @@ async function init() {
 			tileManager.spawnBrowserWebview(tile, true);
 			tileManager.saveCanvasImmediate();
 			minimap.update();
+		}
+	});
+
+	canvasEl.addEventListener("mousedown", (e) => {
+		if (
+			e.target === canvasEl || e.target === gridCanvas ||
+			e.target === tileLayer
+		) {
+			hideStickyToolbar();
 		}
 	});
 
@@ -1190,6 +1303,7 @@ async function init() {
 		if (e.key === "Escape" && getSelectedTiles().length > 0) {
 			clearSelection();
 			tileManager.syncSelectionVisuals();
+			hideStickyToolbar();
 			return;
 		}
 

@@ -1293,6 +1293,140 @@ body.titlebar-collapsed #titlebar {
 	padding: 0;
 }
 
+/* -- Sticky (post-it) notes -- */
+.canvas-tile.sticky-note {
+	border-radius: 6px;
+	border-width: 1px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.canvas-tile.sticky-note.tile-focused {
+	outline: 2px dashed #4a90d9;
+	outline-offset: 3px;
+}
+
+.canvas-tile.sticky-note .tile-title-bar {
+	height: 22px;
+	min-height: 22px;
+	padding: 0 6px;
+	border-radius: 6px 6px 0 0;
+	cursor: grab;
+}
+
+.canvas-tile.sticky-note .tile-title-text,
+.canvas-tile.sticky-note .tile-copy-path-btn,
+.canvas-tile.sticky-note .tile-fullscreen-btn {
+	display: none;
+}
+
+.canvas-tile.sticky-note .tile-content {
+	border-radius: 0 0 6px 6px;
+}
+
+/* Close button sits above the corner resize handles so it stays clickable */
+.canvas-tile.sticky-note .tile-btn-group {
+	position: relative;
+	z-index: 3;
+}
+
+.canvas-tile.sticky-note .tile-close-btn {
+	opacity: 0;
+	width: 18px;
+	height: 18px;
+	font-size: 15px;
+	border-radius: 5px;
+	color: inherit;
+	transform: translateX(3px);
+	transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+}
+
+.canvas-tile.sticky-note:hover .tile-close-btn,
+.canvas-tile.sticky-note.tile-focused .tile-close-btn {
+	opacity: 0.6;
+}
+
+.canvas-tile.sticky-note .tile-close-btn:hover {
+	opacity: 1;
+	color: #e53935;
+	background: transparent;
+}
+
+/* Header owns the top edge for dragging; resize from sides/bottom only so the
+   top handles stop fighting the drag strip and close button. */
+.canvas-tile.sticky-note .tile-resize-handle.corner-ne,
+.canvas-tile.sticky-note .tile-resize-handle.corner-nw,
+.canvas-tile.sticky-note .tile-resize-handle.edge-n {
+	display: none;
+}
+
+/* -- Sticky note floating toolbar (app top-center) -- */
+#sticky-toolbar {
+	position: fixed;
+	top: calc(var(--toolbar-height) + 12px);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 300;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 10px;
+	background: #2a2a2a;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 12px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+	-webkit-app-region: no-drag;
+}
+
+#sticky-toolbar.hidden {
+	display: none;
+}
+
+#sticky-toolbar .stb-swatches {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+#sticky-toolbar .stb-swatch {
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	cursor: pointer;
+}
+
+#sticky-toolbar .stb-swatch.active {
+	box-shadow: 0 0 0 2px #fff;
+}
+
+#sticky-toolbar .stb-divider {
+	width: 1px;
+	height: 18px;
+	margin: 0 2px;
+	background: rgba(255, 255, 255, 0.18);
+}
+
+#sticky-toolbar .stb-btn {
+	min-width: 26px;
+	height: 26px;
+	padding: 0 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: #e8e8e8;
+	font-family: var(--font-mono);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+#sticky-toolbar .stb-btn:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
 /* Fullscreen tile fills the entire canvas viewport */
 .canvas-tile.tile-fullscreen {
 	position: absolute;
