@@ -30,9 +30,10 @@ function isGluedOnSide(t, o, side) {
  * rigidly attached in that direction (chained: neighbours of neighbours).
  * @param {import('./canvas-state.js').Tile} root
  * @param {'e'|'w'|'n'|'s'} side
+ * @param {(tile: import('./canvas-state.js').Tile) => boolean} [filter] keep only matching tiles in the chain
  * @returns {import('./canvas-state.js').Tile[]}
  */
-export function collectGluedChain(root, side) {
+export function collectGluedChain(root, side, filter) {
   const result = [];
   const seen = new Set([root.id]);
   const queue = [root];
@@ -40,6 +41,7 @@ export function collectGluedChain(root, side) {
     const t = queue.shift();
     for (const o of tiles) {
       if (seen.has(o.id)) continue;
+      if (filter && !filter(o)) continue;
       if (isGluedOnSide(t, o, side)) {
         seen.add(o.id);
         result.push(o);

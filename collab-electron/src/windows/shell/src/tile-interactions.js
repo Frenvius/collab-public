@@ -320,11 +320,16 @@ export function attachResize(
       const startH = tile.height;
       const min = MIN_SIZES[tile.type] || MIN_SIZES.term;
 
+      const frame = getFrameForTile ? getFrameForTile(tile) : null;
+      const sameFrame = frame
+        ? (o) => (getFrameForTile ? getFrameForTile(o) : null) === frame
+        : undefined;
+
       const chains = {
-        e: dir.includes("e") ? collectGluedChain(tile, "e") : [],
-        w: dir.includes("w") ? collectGluedChain(tile, "w") : [],
-        s: dir.includes("s") ? collectGluedChain(tile, "s") : [],
-        n: dir.includes("n") ? collectGluedChain(tile, "n") : [],
+        e: dir.includes("e") ? collectGluedChain(tile, "e", sameFrame) : [],
+        w: dir.includes("w") ? collectGluedChain(tile, "w", sameFrame) : [],
+        s: dir.includes("s") ? collectGluedChain(tile, "s", sameFrame) : [],
+        n: dir.includes("n") ? collectGluedChain(tile, "n", sameFrame) : [],
       };
       const chainStart = new Map();
       for (const side of ["e", "w", "s", "n"]) {
@@ -336,8 +341,6 @@ export function attachResize(
           }
         }
       }
-
-      const frame = getFrameForTile ? getFrameForTile(tile) : null;
 
       const webviews = getAllWebviews();
       for (const wv of webviews) {
