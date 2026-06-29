@@ -206,6 +206,7 @@ function AppearancePane() {
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [canvasOpacity, setCanvasOpacity] = useState(0);
   const [maxZoom, setMaxZoom] = useState(100);
+  const [notifFocusZoom, setNotifFocusZoom] = useState(true);
 
   useEffect(() => {
     api.getPref("theme")
@@ -224,6 +225,11 @@ function AppearancePane() {
         if (typeof v === "number") setMaxZoom(Math.round(v * 100));
       })
       .catch(() => { });
+    api.getPref("notifFocusZoom")
+      .then((v) => {
+        if (typeof v === "boolean") setNotifFocusZoom(v);
+      })
+      .catch(() => { });
   }, []);
 
   async function handleThemeChange(mode: ThemeMode) {
@@ -239,6 +245,11 @@ function AppearancePane() {
   async function handleMaxZoomChange(value: number) {
     setMaxZoom(value);
     await api.setPref("maxZoom", value / 100);
+  }
+
+  async function handleNotifFocusZoomChange(next: boolean) {
+    setNotifFocusZoom(next);
+    await api.setPref("notifFocusZoom", next);
   }
 
   return (
@@ -288,6 +299,19 @@ function AppearancePane() {
         <p className="text-xs text-muted-foreground">
           Above 100% terminal text may look blurry.
         </p>
+      </div>
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 space-y-0.5">
+          <p className="text-sm font-medium">Zoom on notification focus</p>
+          <p className="text-xs text-muted-foreground">
+            Reset zoom to 100% when clicking a notification to focus its tile.
+          </p>
+        </div>
+        <Switch
+          checked={notifFocusZoom}
+          onChange={(n) => { void handleNotifFocusZoomChange(n); }}
+        />
       </div>
     </div>
   );
@@ -888,14 +912,14 @@ function Switch({
       className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer"
       style={{
         backgroundColor: checked
-          ? "var(--accent)"
+          ? "var(--primary)"
           : "color-mix(in srgb, var(--foreground) 18%, transparent)",
       }}
     >
       <span
         className="inline-block h-4 w-4 rounded-full transition-transform"
         style={{
-          backgroundColor: "var(--background)",
+          backgroundColor: "var(--primary-foreground)",
           transform: `translateX(${checked ? 18 : 2}px)`,
         }}
       />

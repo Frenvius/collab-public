@@ -172,6 +172,14 @@ window.shellApi.onPrefChanged((key, value) => {
 	}
 });
 
+let notifFocusZoom = true;
+window.shellApi.getPref("notifFocusZoom").then((v) => {
+	if (typeof v === "boolean") notifFocusZoom = v;
+});
+window.shellApi.onPrefChanged((key, value) => {
+	if (key === "notifFocusZoom") notifFocusZoom = value !== false;
+});
+
 /** Convert in-memory panX/panY state to a center-point for persistence. */
 function toCenterPointState(state) {
 	const { panX, panY, zoom } = state.viewport;
@@ -998,7 +1006,7 @@ async function init() {
 		const tile = resolveTile(data);
 		if (!tile) return;
 		clearNotifBadge(tile.id);
-		edgeIndicators.panToTile(tile);
+		edgeIndicators.panToTile(tile, notifFocusZoom ? { targetZoom: 1 } : {});
 		tileManager.focusCanvasTile(tile.id);
 	});
 
