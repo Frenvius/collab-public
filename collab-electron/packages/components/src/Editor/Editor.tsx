@@ -364,6 +364,7 @@ interface EditorProps {
 	editingDisabled?: boolean;
 	placeholder?: string;
 	onEditor?: (editor: unknown) => void;
+	hideFormattingToolbar?: boolean;
 }
 
 export default function Editor({
@@ -373,6 +374,7 @@ export default function Editor({
 	editingDisabled,
 	placeholder,
 	onEditor,
+	hideFormattingToolbar,
 }: EditorProps) {
 	const [lastBlockContent, setLastBlockContent] = useState<Map<string, string>>(
 		new Map(),
@@ -847,6 +849,7 @@ export default function Editor({
 					editable={!editingDisabled}
 					onChange={handleEditorChange}
 					onBlur={handleEditorBlur}
+					formattingToolbar={hideFormattingToolbar ? false : undefined}
 				/>
 				{!editingDisabled && (
 					<WikiLinkAutocomplete editor={editor} />

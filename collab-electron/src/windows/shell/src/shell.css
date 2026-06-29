@@ -1323,7 +1323,7 @@ body.titlebar-collapsed #titlebar {
 
 .canvas-tile.sticky-note.tile-focused {
 	outline: 2px dashed #4a90d9;
-	outline-offset: 3px;
+	outline-offset: 1px;
 }
 
 .canvas-tile.sticky-note .tile-title-bar {

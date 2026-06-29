@@ -31,15 +31,27 @@ function textColorFor(hex: string): string {
 	return lum > 0.55 ? "#1a1a1a" : "#f5f5f5";
 }
 
-const STYLE_ACTIONS = new Set(["bold", "italic", "strike", "code"]);
+const STYLE_ACTIONS = new Set(["bold", "italic", "underline", "strike", "code"]);
 const BLOCK_TYPES: Record<string, string> = {
 	heading: "heading",
 	bulletList: "bulletListItem",
 	numberedList: "numberedListItem",
 	checkList: "checkListItem",
 };
+const ALIGN_ACTIONS: Record<string, "left" | "center" | "right"> = {
+	alignLeft: "left",
+	alignCenter: "center",
+	alignRight: "right",
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function selectedBlocks(editor: any): any[] {
+	const selection = editor.getSelection?.();
+	return selection?.blocks?.length
+		? selection.blocks
+		: [editor.getTextCursorPosition().block];
+}
+
 function runCommand(editor: any, action: string): void {
 	if (!editor) return;
 	editor.focus();
@@ -47,13 +59,16 @@ function runCommand(editor: any, action: string): void {
 		editor.toggleStyles({ [action]: true });
 		return;
 	}
+	const align = ALIGN_ACTIONS[action];
+	if (align) {
+		for (const block of selectedBlocks(editor)) {
+			editor.updateBlock(block, { props: { textAlignment: align } });
+		}
+		return;
+	}
 	const type = BLOCK_TYPES[action];
 	if (!type) return;
-	const selection = editor.getSelection?.();
-	const blocks = selection?.blocks?.length
-		? selection.blocks
-		: [editor.getTextCursorPosition().block];
-	for (const block of blocks) {
+	for (const block of selectedBlocks(editor)) {
 		editor.updateBlock(block, {
 			type,
 			...(type === "heading" ? { props: { level: 1 } } : {}),
@@ -116,6 +131,7 @@ export function StickyView({
 				theme={theme}
 				editingDisabled={!item.isEditable}
 				placeholder="Click to edit..."
+				hideFormattingToolbar
 				onEditor={(e) => {
 					editorRef.current = e;
 				}}
