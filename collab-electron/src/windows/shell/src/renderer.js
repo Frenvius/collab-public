@@ -262,6 +262,8 @@ async function init() {
 	let spaceHeld = false;
 	let isPanning = false;
 	let suppressCanvasDblClickUntil = 0;
+	let pendingRefocusTile = null;
+	let pendingRefocusUntil = 0;
 
 	// -- Drag-and-drop handler (shared with webviews) --
 
@@ -1170,18 +1172,30 @@ async function init() {
 	}
 
 	window.addEventListener("focus", () => {
+		if (spaceHeld) return;
 		// A click on a tile while another tile's guest holds focus is
 		// swallowed by the guest→host focus transfer, never reaching the
-		// tile's overlay. Resolve the target from the cursor so a single
-		// click activates it instead of only deactivating the current one.
+		// tile's overlay. The focus event fires before the click's mousedown
+		// and carries no button, so defer activation: only a left click
+		// activates the tile (middle/right = pan / context menu).
 		const tileId = tileIdAtPoint(cursorX, cursorY);
 		if (tileId && tileId !== tileManager.getFocusedTileId()) {
-			tileManager.focusCanvasTile(tileId);
+			pendingRefocusTile = tileId;
+			pendingRefocusUntil = Date.now() + 600;
 			return;
 		}
 		if (tileId) return;
 		noteSurfaceFocus("shell");
 	});
+	window.addEventListener("mousedown", (e) => {
+		if (pendingRefocusTile === null) return;
+		const target = pendingRefocusTile;
+		pendingRefocusTile = null;
+		if (Date.now() > pendingRefocusUntil) return;
+		if (e.button !== 0) return;
+		if (target === tileManager.getFocusedTileId()) return;
+		tileManager.focusCanvasTile(target);
+	}, true);
 	canvasEl.addEventListener("focus", () => {
 		noteSurfaceFocus("canvas");
 	});

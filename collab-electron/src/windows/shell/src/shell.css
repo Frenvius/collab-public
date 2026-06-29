@@ -1529,8 +1529,9 @@ body.titlebar-collapsed #titlebar {
 	50% { opacity: 0.5; }
 }
 
-/* Space+click pan: tiles don't intercept clicks during pan mode */
-#panel-viewer.space-held .canvas-tile {
+/* Pan mode (space+click or middle-click): tiles don't intercept clicks */
+#panel-viewer.space-held .canvas-tile,
+#panel-viewer.panning .canvas-tile {
 	pointer-events: none;
 }
 
@@ -1539,8 +1540,8 @@ body.titlebar-collapsed #titlebar {
 	cursor: grab !important;
 }
 
-.space-held.panning,
-.space-held.panning * {
+.panning,
+.panning * {
 	cursor: grabbing !important;
 }
 
