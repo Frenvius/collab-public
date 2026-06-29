@@ -1136,11 +1136,8 @@ body.titlebar-collapsed #titlebar {
 }
 
 .canvas-tile.tile-focused {
-	border-color: rgba(0, 0, 0, 0.5);
-}
-
-.dark .canvas-tile.tile-focused {
-	border-color: rgba(255, 255, 255, 0.5);
+	outline: 2px dashed #4a90d9;
+	outline-offset: 1px;
 }
 
 
@@ -1175,7 +1172,7 @@ body.titlebar-collapsed #titlebar {
 	font-size: 13px;
 	line-height: 1;
 	font-weight: 400;
-	color: var(--fg);
+	color: var(--tile-fg, var(--fg));
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -1185,7 +1182,8 @@ body.titlebar-collapsed #titlebar {
 }
 
 .tile-title-parent {
-	color: var(--muted);
+	color: var(--tile-fg, var(--muted));
+	opacity: var(--tile-parent-opacity, 1);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	flex-shrink: 1;
@@ -1206,7 +1204,7 @@ body.titlebar-collapsed #titlebar {
 .tile-action-btn {
 	all: unset;
 	line-height: 1;
-	color: var(--fg);
+	color: var(--tile-fg, var(--fg));
 	opacity: 0.4;
 	cursor: default;
 	padding: 0 2px;

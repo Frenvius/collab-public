@@ -73,20 +73,27 @@ export function applyTileColor(dom, tile) {
     const body = color || "#fef8c4";
     const p = STICKY_PALETTE[body.toLowerCase()];
     const header = p ? p.header : shade(body, -0.06);
+    const fg = p ? p.text : contrastColor(body);
     dom.container.style.background = body;
     dom.container.style.borderColor = p ? p.header : shade(body, -0.12);
     dom.titleBar.style.background = header;
-    dom.titleBar.style.color = p ? p.text : contrastColor(body);
+    dom.titleBar.style.color = fg;
+    dom.titleBar.style.setProperty("--tile-fg", fg);
     return;
   }
   if (!color) {
     dom.titleBar.style.background = "";
     dom.titleBar.style.color = "";
     dom.container.style.borderColor = "";
+    dom.titleBar.style.removeProperty("--tile-fg");
+    dom.titleBar.style.removeProperty("--tile-parent-opacity");
     return;
   }
+  const fg = contrastColor(color);
   dom.titleBar.style.background = color;
-  dom.titleBar.style.color = contrastColor(color);
+  dom.titleBar.style.color = fg;
+  dom.titleBar.style.setProperty("--tile-fg", fg);
+  dom.titleBar.style.setProperty("--tile-parent-opacity", "0.7");
   dom.container.style.borderColor = color;
 }
 
