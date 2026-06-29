@@ -198,13 +198,6 @@ body.platform-darwin {
 	background: color-mix(in srgb, var(--fg) 9%, transparent);
 }
 
-.platform-win #workspace-switch-btn {
-	margin-left: 12px;
-}
-
-body:not(.platform-win) #workspace-switch-btn {
-	margin-left: 78px;
-}
 
 #tab-strip {
 	display: flex;
@@ -560,16 +553,13 @@ body.titlebar-collapsed #panels {
 }
 
 #settings-btn {
-	position: absolute;
-	top: 6px;
-	right: 10px;
-	z-index: 601;
 	-webkit-app-region: no-drag;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: 24px;
 	height: 24px;
+	margin-left: 8px;
 	padding: 0;
 	border: none;
 	border-radius: 6px;
@@ -578,6 +568,14 @@ body.titlebar-collapsed #panels {
 	cursor: pointer;
 	transition: color 0.15s ease, background 0.15s ease;
 	flex-shrink: 0;
+}
+
+.platform-win #settings-btn {
+	margin-left: 6px;
+}
+
+body:not(.platform-win) #settings-btn {
+	margin-left: 78px;
 }
 
 #settings-btn:hover {
