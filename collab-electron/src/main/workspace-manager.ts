@@ -139,11 +139,36 @@ async function ensureDir(): Promise<void> {
   }
 }
 
-async function atomicWrite(path: string, data: unknown): Promise<void> {
+const writeQueues = new Map<string, Promise<void>>();
+
+function atomicWrite(path: string, data: unknown): Promise<void> {
+  const prev = writeQueues.get(path) ?? Promise.resolve();
+  const next = prev.catch(() => {}).then(() => atomicWriteNow(path, data));
+  writeQueues.set(path, next);
+  next.finally(() => {
+    if (writeQueues.get(path) === next) writeQueues.delete(path);
+  });
+  return next;
+}
+
+async function atomicWriteNow(path: string, data: unknown): Promise<void> {
   await ensureDir();
   const tmp = `${path}.${crypto.randomUUID()}.tmp`;
   await writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await rename(tmp, path);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await rename(tmp, path);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if ((code === "EPERM" || code === "EBUSY") && attempt < 5) {
+        await new Promise((r) => setTimeout(r, 20 * (attempt + 1)));
+        continue;
+      }
+      await unlink(tmp).catch(() => {});
+      throw err;
+    }
+  }
 }
 
 async function readJson<T>(path: string): Promise<T | null> {
