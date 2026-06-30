@@ -1461,15 +1461,44 @@ body.titlebar-collapsed #titlebar {
 /* Fullscreen tile fills the entire canvas viewport */
 .canvas-tile.tile-fullscreen {
 	position: absolute;
-	inset: 24px;
+	inset: 56px;
 	width: auto !important;
 	height: auto !important;
-	transform: none !important;
+	transform: none;
+	transform-origin: center;
 	z-index: 109 !important;
 	border: none;
 	border-radius: 10px;
 	overflow: hidden;
 	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+	animation: tile-fs-in 170ms ease-out;
+}
+
+.canvas-tile.tile-fullscreen.tile-fullscreen-exiting {
+	animation: tile-fs-out 170ms ease-in forwards;
+}
+
+@keyframes tile-fs-in {
+	from { opacity: 0; transform: scale(0.92); }
+	to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tile-fs-out {
+	from { opacity: 1; transform: scale(1); }
+	to   { opacity: 0; transform: scale(0.92); }
+}
+
+.has-fullscreen-tile > #tile-layer::before {
+	animation: tile-fs-fade 170ms ease-out;
+}
+
+.has-fullscreen-tile:has(.tile-fullscreen-exiting) > #tile-layer::before {
+	animation: tile-fs-fade 170ms ease-in reverse forwards;
+}
+
+@keyframes tile-fs-fade {
+	from { opacity: 0; }
+	to   { opacity: 1; }
 }
 
 .canvas-tile.tile-fullscreen::before,
@@ -1481,12 +1510,25 @@ body.titlebar-collapsed #titlebar {
 	pointer-events: auto;
 }
 
+.canvas-tile.tile-fullscreen .tile-content,
+.canvas-tile.tile-fullscreen .tile-title-bar {
+	background: rgba(10, 11, 13, 0.8) !important;
+	backdrop-filter: blur(12px);
+}
+
+.canvas-tile.tile-fullscreen.tile-focused {
+	outline: none;
+	border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
 .canvas-tile.tile-fullscreen .tile-title-bar {
 	min-height: 38px;
+	color: rgba(255, 255, 255, 0.85) !important;
+	--tile-fg: rgba(255, 255, 255, 0.85);
 }
 
 #panel-viewer:not(.nav-open) .canvas-tile.tile-fullscreen .tile-title-bar {
-	padding-left: 86px;
+	padding-left: 12px;
 }
 
 .canvas-tile.tile-fullscreen .tile-close-btn {
@@ -1501,12 +1543,10 @@ body.titlebar-collapsed #titlebar {
 	z-index: 101;
 }
 
-.has-fullscreen-tile > #grid-canvas,
 .has-fullscreen-tile > #edge-indicators,
 .has-fullscreen-tile > #zoom-indicator,
 .has-fullscreen-tile > #minimap-wrapper,
 .has-fullscreen-tile > #new-tile-btn,
-.has-fullscreen-tile > #frame-layer,
 .has-fullscreen-tile > .frame-header-layer,
 .has-fullscreen-tile > #tile-layer > .canvas-tile:not(.tile-fullscreen) {
 	display: none;

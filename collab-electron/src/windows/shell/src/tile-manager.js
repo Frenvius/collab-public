@@ -226,17 +226,25 @@ export function createTileManager({
 		if (!dom) return;
 
 		if (fullscreenTileId === id) {
-			dom.container.classList.remove("tile-fullscreen");
-			dom.container.style.cssText = "";
-			panelViewer.classList.remove("has-fullscreen-tile");
+			const c = dom.container;
 			fullscreenTileId = null;
-			repositionAllTiles();
+			c.classList.add("tile-fullscreen-exiting");
+			setTimeout(() => {
+				c.classList.remove("tile-fullscreen", "tile-fullscreen-exiting");
+				c.style.cssText = "";
+				panelViewer.classList.remove("has-fullscreen-tile");
+				repositionAllTiles();
+				const t = getTile(id);
+				if (t) applyTileColor(dom, t);
+			}, 170);
 		} else {
 			if (fullscreenTileId) {
 				const prev = tileDOMs.get(fullscreenTileId);
 				if (prev) {
 					prev.container.classList.remove("tile-fullscreen");
 					prev.container.style.cssText = "";
+					const pt = getTile(fullscreenTileId);
+					if (pt) applyTileColor(prev, pt);
 				}
 			}
 			fullscreenTileId = id;
@@ -245,6 +253,8 @@ export function createTileManager({
 			panelViewer.classList.add("has-fullscreen-tile");
 			focusCanvasTile(id);
 			repositionAllTiles();
+			const t = getTile(id);
+			if (t) applyTileColor(dom, t);
 		}
 	}
 
