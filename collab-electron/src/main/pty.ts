@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as net from "node:net";
 import * as crypto from "crypto";
+import { execFile } from "node:child_process";
 import { type IDisposable } from "node-pty";
 import { displayBasename } from "@collab/shared/path-utils";
 import {
@@ -483,6 +484,57 @@ function osc7ShellHook(shell: string): string | null {
   return null;
 }
 
+const POWERSHELL_OSC7_SNIPPET = [
+  "",
+  "# Report cwd to the host tile via OSC 7 (collab terminal only)",
+  "if ($env:COLLAB_TERMINAL) {",
+  "    $Global:__collabOldPrompt = $function:prompt",
+  "    function prompt {",
+  "        $p = (Get-Location).ProviderPath -replace '\\\\', '/'",
+  "        [Console]::Write(\"$([char]27)]7;file://$env:COMPUTERNAME/$p$([char]7)\")",
+  "        & $Global:__collabOldPrompt",
+  "    }",
+  "}",
+  "",
+].join("\r\n");
+
+const ensuredPowerShellProfiles = new Set<string>();
+
+// Windows PowerShell has no injectable OSC 7 hook (prompt tools overwrite
+// `prompt` late in $PROFILE), so the wrapper must live in $PROFILE itself.
+// Resolve the real profile path from the shell (handles OneDrive redirection
+// and pwsh vs Windows PowerShell) and append the wrapper once if absent.
+function ensurePowerShellProfileOsc7(command: string): void {
+  if (process.platform !== "win32") return;
+  if (ensuredPowerShellProfiles.has(command)) return;
+  ensuredPowerShellProfiles.add(command);
+
+  execFile(
+    command,
+    ["-NoProfile", "-NonInteractive", "-Command", "$PROFILE.CurrentUserCurrentHost"],
+    { timeout: 5000, windowsHide: true },
+    (err, stdout) => {
+      if (err) return;
+      const profilePath = stdout.trim();
+      if (!profilePath) return;
+      try {
+        let content = "";
+        try {
+          content = fs.readFileSync(profilePath, "utf8");
+        } catch {
+          // profile does not exist yet — created below
+        }
+        if (content.includes("__collabOldPrompt")) return;
+        fs.mkdirSync(path.dirname(profilePath), { recursive: true });
+        fs.appendFileSync(profilePath, POWERSHELL_OSC7_SNIPPET);
+        console.log(`[pty] added OSC 7 prompt hook to ${profilePath}`);
+      } catch (e) {
+        console.warn("[pty] failed to update PowerShell profile:", e);
+      }
+    },
+  );
+}
+
 function injectOsc7Hook(
   sessionId: string,
   shell: string,
@@ -678,6 +730,7 @@ export async function createSession(
   sidecarSessionIds.add(sessionId);
   if (resolvedTarget.target === "powershell") {
     sidecarPowerShellSessionIds.add(sessionId);
+    ensurePowerShellProfileOsc7(resolvedTarget.command);
   }
 
   if (!zshIntegrated) {
