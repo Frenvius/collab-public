@@ -212,6 +212,9 @@ contextBridge.exposeInMainWorld("api", {
   createGraphTile: (folderPath: string) =>
     ipcRenderer.send("nav:create-graph-tile", folderPath),
 
+  openExternal: (url: string) =>
+    ipcRenderer.send("shell:open-external", url),
+
   // IDE integration
   detectIdes: () => ipcRenderer.invoke("ide:detect"),
   openInIde: (path: string, ideId?: string) =>
