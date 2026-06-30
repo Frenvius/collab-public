@@ -46,6 +46,7 @@ export function attachDrag(titleBar, tile, {
   function startDrag(e, { deferFocus = false } = {}) {
     if (e.button !== 0) return;
     if (isSpaceHeld?.()) return;
+    if (tile.pinned) return;
     e.preventDefault();
     if (!deferFocus && onFocus) onFocus(tile.id, e);
 
@@ -83,6 +84,7 @@ export function attachDrag(titleBar, tile, {
 
       if (isGroupDrag) {
         for (const entry of groupCtx) {
+          if (entry.tile.pinned) continue;
           entry.tile.x = entry.startX + dx;
           entry.tile.y = entry.startY + dy;
         }

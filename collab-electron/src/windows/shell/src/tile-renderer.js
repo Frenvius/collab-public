@@ -152,6 +152,7 @@ export function createTileDOM(tile, callbacks) {
   container.dataset.tileId = tile.id;
   container.dataset.tileType = tile.type;
   if (tile.sticky) container.classList.add("sticky-note");
+  if (tile.pinned) container.classList.add("tile-pinned");
 
   const titleBar = document.createElement("div");
   titleBar.className = "tile-title-bar";
@@ -283,6 +284,20 @@ export function createTileDOM(tile, callbacks) {
 
   const btnGroup = document.createElement("div");
   btnGroup.className = "tile-btn-group";
+
+  if (callbacks.onTogglePin) {
+    const pinBtn = document.createElement("button");
+    pinBtn.className = "tile-action-btn tile-pin-btn";
+    pinBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
+    pinBtn.title = tile.pinned ? "Unpin (allow drag)" : "Pin (block drag)";
+    pinBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+    pinBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      callbacks.onTogglePin(tile.id);
+      pinBtn.title = tile.pinned ? "Unpin (allow drag)" : "Pin (block drag)";
+    });
+    btnGroup.appendChild(pinBtn);
+  }
 
   const copyablePath = tile.filePath || tile.folderPath;
   if (copyablePath) {

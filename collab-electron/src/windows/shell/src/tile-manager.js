@@ -77,6 +77,7 @@ export function createTileManager({
 				target: t.target,
 				color: t.color,
 				sticky: t.sticky,
+				pinned: t.pinned,
 			})),
 			frames: getFrames(),
 			viewport: {
@@ -598,6 +599,14 @@ export function createTileManager({
 				applyTileColor(d, t);
 				saveCanvasImmediate();
 			},
+			onTogglePin: (id) => {
+				const t = getTile(id);
+				const d = tileDOMs.get(id);
+				if (!t || !d) return;
+				t.pinned = !t.pinned;
+				d.container.classList.toggle("tile-pinned", !!t.pinned);
+				saveCanvasImmediate();
+			},
 		});
 
 		// Double-click title bar → center tile in viewport
@@ -987,6 +996,14 @@ export function createTileManager({
 						sticky: saved.sticky,
 					},
 				);
+			}
+
+			if (saved.pinned) {
+				const t = getTile(saved.id);
+				if (t) {
+					t.pinned = true;
+					tileDOMs.get(saved.id)?.container.classList.add("tile-pinned");
+				}
 			}
 		}
 	}

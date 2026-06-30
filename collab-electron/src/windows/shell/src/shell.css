@@ -1216,6 +1216,18 @@ body.titlebar-collapsed #titlebar {
 	opacity: 0.8;
 }
 
+.canvas-tile.tile-pinned .tile-pin-btn {
+	opacity: 1;
+}
+
+.canvas-tile.tile-pinned .tile-pin-btn svg {
+	fill: currentColor;
+}
+
+.canvas-tile.tile-pinned .tile-title-bar {
+	cursor: default;
+}
+
 .tile-color-btn {
 	width: 12px;
 	height: 12px;
