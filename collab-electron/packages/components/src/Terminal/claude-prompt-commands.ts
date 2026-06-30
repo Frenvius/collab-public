@@ -20,6 +20,7 @@ export const CLAUDE_MODELS: ClaudeModel[] = [
   { name: "claude-opus-4-8", desc: "Opus 4.8 — latest" },
   { name: "claude-opus-4-7", desc: "Opus 4.7" },
   { name: "claude-opus-4-6", desc: "Opus 4.6" },
+  { name: "claude-sonnet-5", desc: "Sonnet 5" },
   { name: "claude-sonnet-4-6", desc: "Sonnet 4.6" },
   { name: "claude-haiku-4-5", desc: "Haiku 4.5 — fastest" },
   { name: "claude-fable-5", desc: "Fable 5" },

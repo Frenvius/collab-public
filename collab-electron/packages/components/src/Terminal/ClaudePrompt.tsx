@@ -43,10 +43,11 @@ const BPM_END = "\x1b[201~";
 const HISTORY_KEY = "claude:prompthistory";
 
 const MODEL_QUICK_SWITCHES = [
-  { id: "sonnet", title: "Sonnet" },
+  { id: "claude-sonnet-5", title: "Sonnet 5" },
   { id: "claude-opus-4-6", title: "Opus 4.6" },
   { id: "claude-opus-4-7", title: "Opus 4.7" },
   { id: "claude-opus-4-8", title: "Opus 4.8" },
+  { id: "claude-sonnet-5[1m]", title: "Sonnet 5 · 1M" },
   { id: "claude-opus-4-6[1m]", title: "Opus 4.6 · 1M" },
   { id: "claude-opus-4-7[1m]", title: "Opus 4.7 · 1M" },
   { id: "claude-opus-4-8[1m]", title: "Opus 4.8 · 1M" },
@@ -55,11 +56,7 @@ const MODEL_QUICK_SWITCHES = [
 function matchQuickSwitchId(rawModel: string | undefined): string {
   if (!rawModel) return "";
   const m = rawModel.toLowerCase();
-  return (
-    MODEL_QUICK_SWITCHES.find((s) =>
-      s.id === "sonnet" ? m.includes("sonnet") : m === s.id,
-    )?.id ?? ""
-  );
+  return MODEL_QUICK_SWITCHES.find((s) => m === s.id)?.id ?? "";
 }
 
 function draftKey(sessionId: string): string {
@@ -1394,7 +1391,14 @@ const ClaudePrompt = React.memo(({ sessionId, term }: ClaudePromptProps) => {
     if (terminalModel) {
       const t = terminalModel.model.toLowerCase();
       const oneM = /1m/i.test(terminalModel.contextInfo ?? "");
-      if (t.includes("sonnet")) return "sonnet";
+      if (t.includes("sonnet")) {
+        const sm = t.match(/sonnet\s*(\d+)(?:[.\s-](\d+))?/);
+        if (sm) {
+          const id = sm[2] ? `claude-sonnet-${sm[1]}-${sm[2]}` : `claude-sonnet-${sm[1]}`;
+          return `${id}${oneM ? "[1m]" : ""}`;
+        }
+        return "sonnet";
+      }
       const m = t.match(/opus\s*(\d)[.\s-]?(\d)/);
       if (m) return `claude-opus-${m[1]}-${m[2]}${oneM ? "[1m]" : ""}`;
     }
