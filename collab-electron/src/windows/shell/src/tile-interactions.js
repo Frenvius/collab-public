@@ -47,6 +47,7 @@ export function attachDrag(titleBar, tile, {
     if (e.button !== 0) return;
     if (isSpaceHeld?.()) return;
     if (tile.pinned) {
+      e.preventDefault();
       if (onFocus) onFocus(tile.id, e);
       return;
     }
