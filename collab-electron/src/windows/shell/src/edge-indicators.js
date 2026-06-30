@@ -236,7 +236,7 @@ export function createEdgeIndicators({
 	}
 
 	function updateEdgeIndicators() {
-		activeTooltipEl = null;
+		removeTooltip();
 
 		const vw = canvasEl.clientWidth;
 		const vh = canvasEl.clientHeight;
