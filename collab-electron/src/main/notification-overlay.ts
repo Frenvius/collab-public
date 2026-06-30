@@ -10,6 +10,7 @@ let overlayWin: BrowserWindow | null = null;
 let mainWin: BrowserWindow | null = null;
 let focusedTileId: string | null = null;
 let focusedTileCwd: string | null = null;
+let focusedTileInView = true;
 let notifCounter = 0;
 let overlayReady = false;
 let lastHeight = 120;
@@ -161,14 +162,19 @@ export function initNotificationOverlay(main: BrowserWindow): void {
     "shell:tile-focused",
     (
       _event,
-      data: string | { tileId: string | null; cwd: string | null } | null,
+      data:
+        | string
+        | { tileId: string | null; cwd: string | null; inView?: boolean }
+        | null,
     ) => {
       if (typeof data === "string" || data == null) {
         focusedTileId = data ?? null;
         focusedTileCwd = null;
+        focusedTileInView = true;
       } else {
         focusedTileId = data.tileId;
         focusedTileCwd = data.cwd;
+        focusedTileInView = data.inView !== false;
       }
       if (overlayWin && !overlayWin.isDestroyed()) {
         overlayWin.webContents.send("notif:dismiss", {
@@ -216,7 +222,9 @@ export function showOverlayNotification(opts: {
   const appVisible = mainWin && !mainWin.isDestroyed()
     && !mainWin.isMinimized();
 
-  if (appVisible) {
+  // Only suppress when the focused tile is actually on screen — a focused but
+  // off-viewport (or minimized) tile still warrants a notification.
+  if (appVisible && focusedTileInView) {
     if (tileId) {
       if (tileId === focusedTileId) return;
     } else if (

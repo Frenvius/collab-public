@@ -8,7 +8,7 @@ import { attachMarquee } from "./tile-interactions.js";
 import { initDarkMode, applyCanvasOpacity } from "./dark-mode.js";
 import { createWebview, isFocusSearchShortcut } from "./webview-factory.js";
 import { createViewport } from "./canvas-viewport.js";
-import { createEdgeIndicators } from "./edge-indicators.js";
+import { createEdgeIndicators, isFullyOffScreen } from "./edge-indicators.js";
 import { createMinimap } from "./canvas-minimap.js";
 import { createPanel } from "./panel-manager.js";
 import { createWorkspaceManager } from "./workspace-manager.js";
@@ -729,6 +729,32 @@ async function init() {
 
 	let minimapRef = null;
 	let frameManager = null;
+	let lastFocusedInView = null;
+
+	function focusedTileVisible(tile) {
+		if (!tile) return false;
+		return !isFullyOffScreen(
+			tile,
+			canvasEl.clientWidth, canvasEl.clientHeight,
+			viewportState.panX, viewportState.panY, viewportState.zoom,
+		);
+	}
+
+	// Re-report focus when the focused tile crosses the viewport edge, so the
+	// host can decide whether an off-screen focused tile still needs a notif.
+	function reportFocusedVisibility() {
+		const tile = tileManager.getFocusedTile();
+		if (!tile) { lastFocusedInView = null; return; }
+		const inView = focusedTileVisible(tile);
+		if (inView === lastFocusedInView) return;
+		lastFocusedInView = inView;
+		window.shellApi.notifyTileFocused({
+			tileId: tile.id,
+			cwd: tile.cwd || tile.autoTitle || null,
+			inView,
+		});
+	}
+
 	const tileManager = createTileManager({
 		tileLayer, viewportState, configs,
 		getAllWebviews,
@@ -736,7 +762,11 @@ async function init() {
 		getFrameForTile: (tile) => frameManager?.getFrameForTile(tile) ?? null,
 		onFocusChange: () => frameManager?.updateHeaderStacking(),
 		isSpaceHeld: () => spaceHeld,
-		onReposition: () => { viewport.redrawGrid(); minimapRef?.update(); },
+		onReposition: () => {
+			viewport.redrawGrid();
+			minimapRef?.update();
+			reportFocusedVisibility();
+		},
 		onSaveDebounced(state) {
 			window.shellApi.canvasSaveState(
 				toCenterPointState(state),
@@ -774,9 +804,11 @@ async function init() {
 			tileListWebview.send(
 				"tile-list:focus", tile?.id || null,
 			);
+			lastFocusedInView = tile ? focusedTileVisible(tile) : null;
 			window.shellApi.notifyTileFocused({
 				tileId: tile?.id || null,
 				cwd: tile?.cwd || tile?.autoTitle || null,
+				inView: lastFocusedInView ?? true,
 			});
 			if (tile?.id) {
 				setTileNotified(tile.id, false);
@@ -1045,6 +1077,7 @@ async function init() {
 			surface !== "canvas-tile"
 		) {
 			tileManager.blurCanvasTileGuest();
+			lastFocusedInView = null;
 			window.shellApi.notifyTileFocused({
 				tileId: null, cwd: null,
 			});

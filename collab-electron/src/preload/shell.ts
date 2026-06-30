@@ -472,7 +472,10 @@ contextBridge.exposeInMainWorld("shellApi", {
     ipcRenderer.invoke("browser:info", { webContentsId }),
 
   notifyTileFocused: (
-    data: string | null | { tileId: string | null; cwd: string | null },
+    data:
+      | string
+      | null
+      | { tileId: string | null; cwd: string | null; inView?: boolean },
   ) => ipcRenderer.send("shell:tile-focused", data),
 
   onNotificationNavigate: (
