@@ -1461,12 +1461,15 @@ body.titlebar-collapsed #titlebar {
 /* Fullscreen tile fills the entire canvas viewport */
 .canvas-tile.tile-fullscreen {
 	position: absolute;
-	inset: 0;
-	width: 100% !important;
-	height: 100% !important;
+	inset: 24px;
+	width: auto !important;
+	height: auto !important;
 	transform: none !important;
 	z-index: 109 !important;
 	border: none;
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 .canvas-tile.tile-fullscreen::before,
@@ -1503,8 +1506,20 @@ body.titlebar-collapsed #titlebar {
 .has-fullscreen-tile > #zoom-indicator,
 .has-fullscreen-tile > #minimap-wrapper,
 .has-fullscreen-tile > #new-tile-btn,
+.has-fullscreen-tile > #frame-layer,
+.has-fullscreen-tile > .frame-header-layer,
 .has-fullscreen-tile > #tile-layer > .canvas-tile:not(.tile-fullscreen) {
 	display: none;
+}
+
+.has-fullscreen-tile > #tile-layer::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 108;
+	background: rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(8px);
+	pointer-events: none;
 }
 
 
