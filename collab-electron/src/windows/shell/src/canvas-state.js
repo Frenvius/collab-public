@@ -14,6 +14,10 @@
  * @property {string} [cwd] - Working directory for terminal tiles
  * @property {string} [target] - Session kind for terminal tiles (e.g. docker:<id>)
  * @property {string} [color] - User-chosen accent color for terminal tiles (hex)
+ * @property {string} [backgroundImage] - Absolute path to a background image (terminal tiles)
+ * @property {string} [backgroundImagePos] - CSS object-position for the background image, e.g. "50% 50%"
+ * @property {number} [backgroundImageZoom] - Scale factor applied to the background image
+ * @property {number} [backgroundImageOpacity] - User-adjusted opacity (0-1) for the background image
  * @property {string} [ptySessionId] - PTY session ID for terminal tiles
  * @property {string} [userTitle] - Manual title override set by user
  * @property {string} [autoTitle] - Auto-computed title from terminal session

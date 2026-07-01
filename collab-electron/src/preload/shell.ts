@@ -295,6 +295,9 @@ contextBridge.exposeInMainWorld("shellApi", {
     buttons?: string[];
   }): Promise<number> => ipcRenderer.invoke("dialog:confirm", opts),
 
+  openImageDialog: (): Promise<string | null> =>
+    ipcRenderer.invoke("dialog:open-image"),
+
   showContextMenu: (
     items: Array<{ id: string; label: string; enabled?: boolean }>,
   ) => ipcRenderer.invoke("context-menu:show", items),

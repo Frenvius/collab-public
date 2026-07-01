@@ -6,7 +6,7 @@ import {
 } from "./canvas-state.js";
 import {
 	createTileDOM, positionTile, updateTileTitle, getTileLabel,
-	startInlineRename, applyTileColor,
+	startInlineRename, applyTileColor, applyTileBackgroundImage,
 } from "./tile-renderer.js";
 import { toCollabFileUrl } from "@collab/shared/collab-file-url";
 import { workspaceRootMatch } from "@collab/shared/path-utils";
@@ -76,6 +76,10 @@ export function createTileManager({
 				autoTitle: t.autoTitle,
 				target: t.target,
 				color: t.color,
+				backgroundImage: t.backgroundImage,
+				backgroundImagePos: t.backgroundImagePos,
+				backgroundImageZoom: t.backgroundImageZoom,
+				backgroundImageOpacity: t.backgroundImageOpacity,
 				sticky: t.sticky,
 				pinned: t.pinned,
 			})),
@@ -609,6 +613,35 @@ export function createTileManager({
 				applyTileColor(d, t);
 				saveCanvasImmediate();
 			},
+			onSetBackgroundImage: (id, imagePath, crop) => {
+				const t = getTile(id);
+				const d = tileDOMs.get(id);
+				if (!t || !d) return;
+				t.backgroundImage = imagePath;
+				t.backgroundImagePos = crop.pos;
+				t.backgroundImageZoom = crop.zoom;
+				applyTileBackgroundImage(d, t);
+				saveCanvasImmediate();
+			},
+			onAdjustBackgroundImage: (id, opacity) => {
+				const t = getTile(id);
+				const d = tileDOMs.get(id);
+				if (!t || !d) return;
+				t.backgroundImageOpacity = opacity;
+				applyTileBackgroundImage(d, t);
+				saveCanvasImmediate();
+			},
+			onClearBackgroundImage: (id) => {
+				const t = getTile(id);
+				const d = tileDOMs.get(id);
+				if (!t || !d) return;
+				delete t.backgroundImage;
+				delete t.backgroundImagePos;
+				delete t.backgroundImageZoom;
+				delete t.backgroundImageOpacity;
+				applyTileBackgroundImage(d, t);
+				saveCanvasImmediate();
+			},
 			onTogglePin: (id) => {
 				const t = getTile(id);
 				const d = tileDOMs.get(id);
@@ -945,6 +978,10 @@ export function createTileManager({
 						cwd: saved.cwd,
 						target: saved.target,
 						color: saved.color,
+						backgroundImage: saved.backgroundImage,
+						backgroundImagePos: saved.backgroundImagePos,
+						backgroundImageZoom: saved.backgroundImageZoom,
+						backgroundImageOpacity: saved.backgroundImageOpacity,
 						userTitle: saved.userTitle,
 						autoTitle: saved.autoTitle,
 					},

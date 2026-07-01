@@ -839,6 +839,111 @@ body:not(.platform-win) #settings-btn {
 	padding: 0;
 }
 
+/* ── Tile background image cropper ── */
+
+.bg-cropper-overlay {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.5);
+	backdrop-filter: blur(12px);
+	z-index: 9700;
+}
+
+.bg-cropper-modal {
+	background: var(--bg);
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+	border: 1px solid var(--border);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.bg-cropper-box {
+	position: relative;
+	overflow: hidden;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	cursor: move;
+}
+
+.bg-cropper-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	user-select: none;
+	pointer-events: none;
+}
+
+.bg-cropper-zoom-row input[type="range"] {
+	width: 100%;
+	accent-color: var(--primary, #1d76dc);
+}
+
+.bg-adjust-label {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--fg);
+}
+
+.bg-adjust-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 9700;
+	background: transparent;
+}
+
+.bg-adjust-popover {
+	position: fixed;
+	width: 260px;
+	background: var(--bg);
+	border-radius: 10px;
+	padding: 14px;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+	border: 1px solid var(--border);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.bg-cropper-btn-row {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.bg-cropper-btn {
+	padding: 6px 16px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: transparent;
+	color: var(--muted);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.bg-cropper-btn:hover {
+	color: var(--fg);
+	border-color: var(--fg);
+}
+
+.bg-cropper-btn-primary {
+	border: none;
+	background: var(--primary, #1d76dc);
+	color: #fff;
+	font-weight: 500;
+}
+
+.bg-cropper-btn-primary:hover {
+	opacity: 0.9;
+	color: #fff;
+	border-color: transparent;
+}
+
 /* ── Panel toggle buttons ── */
 
 .panel-toggle {
@@ -1286,9 +1391,45 @@ body.titlebar-collapsed #titlebar {
 	background: rgba(250, 250, 250, 0.5);
 }
 
+.canvas-tile[data-tile-type="term"] .tile-title-bar,
+.canvas-tile[data-tile-type="term"] .tile-content {
+	position: relative;
+	z-index: 1;
+}
+
 .canvas-tile[data-tile-type="term"] .tile-title-bar {
 	background: transparent;
 	color: rgba(0, 0, 0, 0.6);
+}
+
+.tile-bg-image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	pointer-events: none;
+	z-index: 0;
+	border-radius: inherit;
+	opacity: 0.4;
+	filter: saturate(0.55) blur(3px);
+}
+
+.dark .tile-bg-image {
+	opacity: 0.32;
+}
+
+.tile-bg-scrim {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	background: rgba(250, 250, 250, 0.55);
+}
+
+.dark .tile-bg-scrim {
+	background: rgba(5, 5, 5, 0.5);
 }
 
 .dark .canvas-tile[data-tile-type="term"] {
@@ -1298,6 +1439,16 @@ body.titlebar-collapsed #titlebar {
 .dark .canvas-tile[data-tile-type="term"] .tile-title-bar {
 	background: transparent;
 	color: rgba(255, 255, 255, 0.7);
+}
+
+.canvas-tile.has-bg-image .tile-title-bar {
+	background: rgba(250, 250, 250, 0.45);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+}
+
+.dark .canvas-tile.has-bg-image .tile-title-bar {
+	background: rgba(5, 5, 5, 0.4);
 }
 
 .canvas-tile[data-tile-type="note"] .tile-title-bar,

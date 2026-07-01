@@ -1,4 +1,5 @@
 import { splitDisplayPath } from "@collab/shared/path-utils";
+import { toCollabFileUrl } from "@collab/shared/collab-file-url";
 
 const TILE_GAP = 6;
 
@@ -158,6 +159,217 @@ export function pickColor(initial, onPick, anchor) {
   });
   input.addEventListener("blur", () => setTimeout(cleanup, 150));
   input.click();
+}
+
+/**
+ * Adds, updates, or removes a terminal tile's background image layer to
+ * match `tile.backgroundImage` / `backgroundImagePos` / `backgroundImageZoom`.
+ * @param {object} dom
+ * @param {import('./canvas-state.js').Tile} tile
+ */
+export function applyTileBackgroundImage(dom, tile) {
+  const hasBgImage = tile.type === "term" && !!tile.backgroundImage;
+  dom.container.classList.toggle("has-bg-image", hasBgImage);
+  if (!hasBgImage) {
+    dom.bgImage?.remove();
+    dom.bgImage = null;
+    dom.bgScrim?.remove();
+    dom.bgScrim = null;
+    return;
+  }
+  if (!dom.bgImage) {
+    const img = document.createElement("img");
+    img.className = "tile-bg-image";
+    img.draggable = false;
+    dom.container.insertBefore(img, dom.container.firstChild);
+    dom.bgImage = img;
+
+    const scrim = document.createElement("div");
+    scrim.className = "tile-bg-scrim";
+    dom.container.insertBefore(scrim, dom.container.firstChild.nextSibling);
+    dom.bgScrim = scrim;
+  }
+  dom.bgImage.src = toCollabFileUrl(tile.backgroundImage);
+  dom.bgImage.style.objectPosition = tile.backgroundImagePos || "50% 50%";
+  dom.bgImage.style.transform = `scale(${tile.backgroundImageZoom || 1})`;
+  dom.bgImage.style.opacity =
+    tile.backgroundImageOpacity != null ? tile.backgroundImageOpacity : "";
+}
+
+/**
+ * Opens a small modal with a slider to adjust how visible a tile's
+ * background image is, live-previewing on `dom.bgImage` as it moves.
+ * @param {object} dom
+ * @param {import('./canvas-state.js').Tile} tile
+ * @param {(opacity: number) => void} onApply
+ */
+export function openBackgroundAdjustModal(dom, tile, onApply) {
+  const defaultOpacity =
+    Number(getComputedStyle(dom.bgImage).opacity) || 0.4;
+  const initial = tile.backgroundImageOpacity != null
+    ? tile.backgroundImageOpacity
+    : defaultOpacity;
+
+  // A transparent full-screen layer just to catch outside clicks — no
+  // dimming/blur, so the tile stays visible while the slider is live.
+  const overlay = document.createElement("div");
+  overlay.className = "bg-adjust-overlay";
+
+  const popover = document.createElement("div");
+  popover.className = "bg-adjust-popover";
+  const r = dom.titleBar.getBoundingClientRect();
+  popover.style.left = `${r.left}px`;
+  popover.style.top = `${r.bottom + 6}px`;
+
+  const label = document.createElement("div");
+  label.className = "bg-adjust-label";
+  label.textContent = "Background visibility";
+
+  const opacityRow = document.createElement("div");
+  opacityRow.className = "bg-cropper-zoom-row";
+  const opacityInput = document.createElement("input");
+  opacityInput.type = "range";
+  opacityInput.min = "0";
+  opacityInput.max = "100";
+  opacityInput.value = String(Math.round(initial * 100));
+  opacityInput.addEventListener("input", () => {
+    dom.bgImage.style.opacity = String(Number(opacityInput.value) / 100);
+  });
+  opacityRow.appendChild(opacityInput);
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "bg-cropper-btn-row";
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.className = "bg-cropper-btn";
+  const applyBtn = document.createElement("button");
+  applyBtn.textContent = "Apply";
+  applyBtn.className = "bg-cropper-btn bg-cropper-btn-primary";
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(applyBtn);
+
+  popover.appendChild(label);
+  popover.appendChild(opacityRow);
+  popover.appendChild(btnRow);
+  overlay.appendChild(popover);
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  const revert = () => { dom.bgImage.style.opacity = String(initial); };
+  overlay.addEventListener("mousedown", (e) => {
+    if (e.target === overlay) { revert(); close(); }
+  });
+  cancelBtn.addEventListener("click", () => { revert(); close(); });
+  applyBtn.addEventListener("click", () => {
+    onApply(Number(opacityInput.value) / 100);
+    close();
+  });
+}
+
+/**
+ * Opens a small modal to pan/zoom `imagePath` within a box matching the
+ * tile's aspect ratio, then calls `onApply({ pos, zoom })`.
+ * @param {string} imagePath
+ * @param {import('./canvas-state.js').Tile} tile
+ * @param {(crop: { pos: string, zoom: number }) => void} onApply
+ */
+export function openBackgroundImageCropper(imagePath, tile, onApply) {
+  const maxSize = 420;
+  const ratio = tile.width / tile.height;
+  const boxW = ratio >= 1 ? maxSize : maxSize * ratio;
+  const boxH = ratio >= 1 ? maxSize / ratio : maxSize;
+
+  const overlay = document.createElement("div");
+  overlay.className = "bg-cropper-overlay";
+
+  const modal = document.createElement("div");
+  modal.className = "bg-cropper-modal";
+
+  const box = document.createElement("div");
+  box.className = "bg-cropper-box";
+  box.style.width = `${boxW}px`;
+  box.style.height = `${boxH}px`;
+
+  const img = document.createElement("img");
+  img.className = "bg-cropper-img";
+  img.draggable = false;
+  img.src = toCollabFileUrl(imagePath);
+
+  let posX = 50;
+  let posY = 50;
+  let zoom = 1;
+  const render = () => {
+    img.style.objectPosition = `${posX}% ${posY}%`;
+    img.style.transform = `scale(${zoom})`;
+  };
+  render();
+  box.appendChild(img);
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startPosX = posX;
+  let startPosY = posY;
+  box.addEventListener("mousedown", (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startPosX = posX;
+    startPosY = posY;
+  });
+  const onMouseMove = (e) => {
+    if (!dragging) return;
+    posX = Math.max(0, Math.min(100, startPosX - ((e.clientX - startX) / boxW) * 100));
+    posY = Math.max(0, Math.min(100, startPosY - ((e.clientY - startY) / boxH) * 100));
+    render();
+  };
+  const onMouseUp = () => { dragging = false; };
+  window.addEventListener("mousemove", onMouseMove);
+  window.addEventListener("mouseup", onMouseUp);
+
+  const zoomRow = document.createElement("div");
+  zoomRow.className = "bg-cropper-zoom-row";
+  const zoomInput = document.createElement("input");
+  zoomInput.type = "range";
+  zoomInput.min = "100";
+  zoomInput.max = "300";
+  zoomInput.value = "100";
+  zoomInput.addEventListener("input", () => {
+    zoom = Number(zoomInput.value) / 100;
+    render();
+  });
+  zoomRow.appendChild(zoomInput);
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "bg-cropper-btn-row";
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.className = "bg-cropper-btn";
+  const applyBtn = document.createElement("button");
+  applyBtn.textContent = "Apply";
+  applyBtn.className = "bg-cropper-btn bg-cropper-btn-primary";
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(applyBtn);
+
+  modal.appendChild(box);
+  modal.appendChild(zoomRow);
+  modal.appendChild(btnRow);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const close = () => {
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+    overlay.remove();
+  };
+  overlay.addEventListener("mousedown", (e) => {
+    if (e.target === overlay) close();
+  });
+  cancelBtn.addEventListener("click", close);
+  applyBtn.addEventListener("click", () => {
+    onApply({ pos: `${posX}% ${posY}%`, zoom });
+    close();
+  });
 }
 
 /**
@@ -397,6 +609,19 @@ export function createTileDOM(tile, callbacks) {
         ...(tile.color
           ? [{ id: "reset-color", label: "Reset Color" }]
           : []),
+        { id: "separator", label: "" },
+        {
+          id: "set-bg-image",
+          label: tile.backgroundImage
+            ? "Change Background Image…"
+            : "Set Background Image…",
+        },
+        ...(tile.backgroundImage
+          ? [
+            { id: "adjust-bg-image", label: "Adjust Background…" },
+            { id: "clear-bg-image", label: "Clear Background Image" },
+          ]
+          : []),
       );
     }
     if (path) {
@@ -424,6 +649,18 @@ export function createTileDOM(tile, callbacks) {
       );
     } else if (selected === "reset-color" && callbacks.onResetColor) {
       callbacks.onResetColor(tile.id);
+    } else if (selected === "set-bg-image" && callbacks.onSetBackgroundImage) {
+      const imagePath = await window.shellApi.openImageDialog();
+      if (!imagePath) return;
+      openBackgroundImageCropper(imagePath, tile, (crop) =>
+        callbacks.onSetBackgroundImage(tile.id, imagePath, crop),
+      );
+    } else if (selected === "adjust-bg-image" && callbacks.onAdjustBackgroundImage) {
+      openBackgroundAdjustModal(dom, tile, (opacity) =>
+        callbacks.onAdjustBackgroundImage(tile.id, opacity),
+      );
+    } else if (selected === "clear-bg-image" && callbacks.onClearBackgroundImage) {
+      callbacks.onClearBackgroundImage(tile.id);
     } else if (selected === "reveal-in-finder") {
       if (path) window.shellApi.revealInFinder(path);
     } else if (selected.startsWith("open-ide:")) {
@@ -443,8 +680,9 @@ export function createTileDOM(tile, callbacks) {
   container.appendChild(contentArea);
   contentArea.appendChild(contentOverlay);
 
-  const dom = { container, titleBar, titleText, contentArea, contentOverlay, closeBtn, urlInput, navBack, navForward, navReload };
+  const dom = { container, titleBar, titleText, contentArea, contentOverlay, closeBtn, urlInput, navBack, navForward, navReload, bgImage: null };
   applyTileColor(dom, tile);
+  applyTileBackgroundImage(dom, tile);
   return dom;
 }
 
