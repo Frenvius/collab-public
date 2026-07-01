@@ -159,6 +159,15 @@ contextBridge.exposeInMainWorld("shellApi", {
     return () => ipcRenderer.removeListener("update:status", handler);
   },
 
+  repoUpdateGetStatus: () => ipcRenderer.invoke("repoUpdate:getStatus"),
+  repoUpdateCheck: () => ipcRenderer.invoke("repoUpdate:check"),
+  repoUpdatePull: () => ipcRenderer.invoke("repoUpdate:pull"),
+  onRepoUpdateStatus: (cb: (state: unknown) => void) => {
+    const handler = (_event: unknown, state: unknown) => cb(state);
+    ipcRenderer.on("repoUpdate:status", handler);
+    return () => ipcRenderer.removeListener("repoUpdate:status", handler);
+  },
+
   vscodeServerUrl: (): Promise<{
     url?: string;
     token?: string;

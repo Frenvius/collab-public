@@ -51,6 +51,7 @@ import * as gitReplay from "./git-replay";
 import { DISABLE_GIT_REPLAY } from "@collab/shared/replay-types";
 import * as pty from "./pty";
 import { updateManager, setupUpdateIPC } from "./updater";
+import { repoUpdateManager, setupRepoUpdateIPC } from "./repo-update";
 import { DEV_WORKTREE_ID } from "./paths";
 import {
   initMainAnalytics,
@@ -961,6 +962,8 @@ app.whenReady().then(async () => {
   updateManager.init({
     onBeforeQuit: () => shutdownBackgroundServices(),
   });
+  setupRepoUpdateIPC();
+  repoUpdateManager.init();
 
   try {
     await pty.ensureSidecar();

@@ -248,6 +248,7 @@ async function init() {
 	const settingsModal = document.getElementById("settings-modal");
 	const settingsBtn = document.getElementById("settings-btn");
 	const updatePill = document.getElementById("update-pill");
+	const repoUpdatePill = document.getElementById("repo-update-pill");
 	const dragDropOverlay =
 		document.getElementById("drag-drop-overlay");
 	const loadingOverlay =
@@ -2047,6 +2048,60 @@ async function init() {
 			updateState = { status: "idle" };
 			renderUpdatePill();
 			window.shellApi.updateCheck();
+		}
+	});
+
+	// -- Repo update pill (dev mode only: is the source checkout behind its remote?) --
+
+	let repoUpdateState = { status: "idle" };
+
+	function renderRepoUpdatePill() {
+		if (repoUpdateState.status === "behind") {
+			repoUpdatePill.style.display = "inline-block";
+			repoUpdatePill.classList.remove("is-downloading");
+			repoUpdatePill.classList.remove("is-error");
+			const n = repoUpdateState.behindCount ?? 0;
+			repoUpdatePill.textContent =
+				`Pull ${n} commit${n === 1 ? "" : "s"}`;
+			repoUpdatePill.title = "Click to git pull";
+		} else if (repoUpdateState.status === "pulling") {
+			repoUpdatePill.style.display = "inline-block";
+			repoUpdatePill.classList.add("is-downloading");
+			repoUpdatePill.classList.remove("is-error");
+			repoUpdatePill.textContent = "Pulling…";
+			repoUpdatePill.title = "Running git pull...";
+		} else if (repoUpdateState.status === "error") {
+			repoUpdatePill.style.display = "inline-block";
+			repoUpdatePill.classList.remove("is-downloading");
+			repoUpdatePill.classList.add("is-error");
+			repoUpdatePill.textContent = "Pull failed — retry";
+			repoUpdatePill.title =
+				repoUpdateState.error || "git pull failed";
+		} else {
+			repoUpdatePill.style.display = "none";
+			repoUpdatePill.classList.remove("is-downloading");
+			repoUpdatePill.classList.remove("is-error");
+		}
+	}
+
+	window.shellApi.repoUpdateGetStatus?.().then((s) => {
+		repoUpdateState = s;
+		renderRepoUpdatePill();
+	}).catch(() => {});
+
+	window.shellApi.onRepoUpdateStatus?.((s) => {
+		repoUpdateState = s;
+		renderRepoUpdatePill();
+	});
+
+	repoUpdatePill.addEventListener("click", () => {
+		if (repoUpdateState.status === "pulling") return;
+		if (repoUpdateState.status === "behind") {
+			window.shellApi.repoUpdatePull();
+		} else if (repoUpdateState.status === "error") {
+			repoUpdateState = { status: "idle" };
+			renderRepoUpdatePill();
+			window.shellApi.repoUpdateCheck();
 		}
 	});
 

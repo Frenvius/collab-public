@@ -122,9 +122,15 @@ body.platform-darwin {
 
 /* ── Windows window controls ── */
 
+#titlebar-right {
+	display: flex;
+	align-items: center;
+	margin-left: auto;
+	height: 100%;
+}
+
 #window-controls {
 	display: none;
-	margin-left: auto;
 	height: 100%;
 	-webkit-app-region: no-drag;
 }
@@ -587,11 +593,10 @@ body:not(.platform-win) #settings-btn {
 	transform: scale(0.94);
 }
 
-#update-pill {
-	position: absolute;
-	top: 8px;
-	right: 42px;
-	z-index: 101;
+#update-pill,
+#repo-update-pill {
+	flex-shrink: 0;
+	margin-right: 8px;
 	-webkit-app-region: no-drag;
 	padding: 2px 9px;
 	border-radius: 9999px;
@@ -606,15 +611,18 @@ body:not(.platform-win) #settings-btn {
 	white-space: nowrap;
 }
 
-#update-pill:hover {
+#update-pill:hover,
+#repo-update-pill:hover {
 	background: color-mix(in srgb, var(--primary, #1d76dc) 10%, transparent);
 }
 
-#update-pill:active {
+#update-pill:active,
+#repo-update-pill:active {
 	transform: scale(0.98);
 }
 
-#update-pill.is-downloading {
+#update-pill.is-downloading,
+#repo-update-pill.is-downloading {
 	border-color: transparent;
 	background: transparent;
 	color: var(--muted, rgba(0, 0, 0, 0.5));
@@ -622,12 +630,14 @@ body:not(.platform-win) #settings-btn {
 	pointer-events: none;
 }
 
-#update-pill.is-error {
+#update-pill.is-error,
+#repo-update-pill.is-error {
 	border-color: var(--destructive, #e5484d);
 	color: var(--destructive, #e5484d);
 }
 
-#update-pill.is-error:hover {
+#update-pill.is-error:hover,
+#repo-update-pill.is-error:hover {
 	background: color-mix(in srgb, var(--destructive, #e5484d) 10%, transparent);
 }
 

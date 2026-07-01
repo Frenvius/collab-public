@@ -17,26 +17,30 @@
 		</button>
 		<button type="button" id="workspace-switch-btn" aria-label="Switch workspace" data-tooltip="Switch workspace"></button>
 		<div id="tab-strip"></div>
-		<div id="window-controls">
-			<button type="button" id="win-minimize" aria-label="Minimize">
-				<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-					<path d="M0 5 H10" stroke="currentColor" stroke-width="1" fill="none" />
-				</svg>
-			</button>
-			<button type="button" id="win-maximize" aria-label="Maximize">
-				<svg class="icon-maximize" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-					<rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" stroke-width="1" fill="none" />
-				</svg>
-				<svg class="icon-restore" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-					<path d="M2.5 2.5 V0.5 H9.5 V7.5 H7.5" stroke="currentColor" stroke-width="1" fill="none" />
-					<rect x="0.5" y="2.5" width="7" height="7" stroke="currentColor" stroke-width="1" fill="none" />
-				</svg>
-			</button>
-			<button type="button" id="win-close" aria-label="Close">
-				<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-					<path d="M0.5 0.5 L9.5 9.5 M9.5 0.5 L0.5 9.5" stroke="currentColor" stroke-width="1" fill="none" />
-				</svg>
-			</button>
+		<div id="titlebar-right">
+			<button type="button" id="repo-update-pill" style="display: none;"></button>
+			<button type="button" id="update-pill" style="display: none;"></button>
+			<div id="window-controls">
+				<button type="button" id="win-minimize" aria-label="Minimize">
+					<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+						<path d="M0 5 H10" stroke="currentColor" stroke-width="1" fill="none" />
+					</svg>
+				</button>
+				<button type="button" id="win-maximize" aria-label="Maximize">
+					<svg class="icon-maximize" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+						<rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" stroke-width="1" fill="none" />
+					</svg>
+					<svg class="icon-restore" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+						<path d="M2.5 2.5 V0.5 H9.5 V7.5 H7.5" stroke="currentColor" stroke-width="1" fill="none" />
+						<rect x="0.5" y="2.5" width="7" height="7" stroke="currentColor" stroke-width="1" fill="none" />
+					</svg>
+				</button>
+				<button type="button" id="win-close" aria-label="Close">
+					<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+						<path d="M0.5 0.5 L9.5 9.5 M9.5 0.5 L0.5 9.5" stroke="currentColor" stroke-width="1" fill="none" />
+					</svg>
+				</button>
+			</div>
 		</div>
 	</div>
 	<div id="workspace-popover" class="hidden"></div>
@@ -57,7 +61,6 @@
 	<div id="panels">
 		<div id="panel-nav">
 			<div id="nav-toolbar">
-				<button type="button" id="update-pill" style="display: none;"></button>
 				<div id="sidebar-mode-control">
 					<button type="button" class="mode-btn active" data-mode="files">Files</button>
 					<button type="button" class="mode-btn" data-mode="tiles">Tiles</button>
