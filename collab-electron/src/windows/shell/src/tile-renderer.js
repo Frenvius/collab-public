@@ -2,6 +2,31 @@ import { splitDisplayPath } from "@collab/shared/path-utils";
 
 const TILE_GAP = 6;
 
+function getRevealLabel() {
+  const platform = window.shellApi?.getPlatform?.();
+  if (platform === "darwin") return "Reveal in Finder";
+  if (platform === "win32") return "Reveal in Explorer";
+  return "Reveal in File Manager";
+}
+
+let idesPromise = null;
+/** Installed code editors (VS Code / Cursor / …), detected once and cached. */
+function getIdes() {
+  if (!idesPromise) {
+    idesPromise =
+      window.shellApi?.detectIdes?.().catch(() => []) ??
+      Promise.resolve([]);
+  }
+  return idesPromise;
+}
+
+/** The filesystem path a tile's title-bar context menu should act on, if any. */
+function getTilePath(tile) {
+  if (tile.type === "term") return tile.cwd || null;
+  if (tile.type === "graph" || tile.type === "vscode") return tile.folderPath || null;
+  return tile.filePath || null;
+}
+
 /**
  * Turns arbitrary input into a navigable URL.
  * If the input looks like a URL (has a scheme or a recognized TLD),
@@ -357,11 +382,14 @@ export function createTileDOM(tile, callbacks) {
   btnGroup.appendChild(closeBtn);
   titleBar.appendChild(btnGroup);
 
-  if (tile.type === "term") {
-    titleBar.addEventListener("contextmenu", async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const selected = await window.shellApi.showContextMenu([
+  titleBar.addEventListener("contextmenu", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const path = getTilePath(tile);
+
+    const items = [];
+    if (tile.type === "term") {
+      items.push(
         { id: "rename", label: "Rename" },
         { id: "duplicate", label: "Duplicate" },
         { id: "separator", label: "" },
@@ -369,20 +397,39 @@ export function createTileDOM(tile, callbacks) {
         ...(tile.color
           ? [{ id: "reset-color", label: "Reset Color" }]
           : []),
-      ]);
-      if (selected === "rename" && callbacks.onRename) {
-        callbacks.onRename(tile.id);
-      } else if (selected === "duplicate" && callbacks.onDuplicate) {
-        callbacks.onDuplicate(tile.id);
-      } else if (selected === "set-color" && callbacks.onSetColor) {
-        pickColor(tile.color, (color) =>
-          callbacks.onSetColor(tile.id, color),
-        );
-      } else if (selected === "reset-color" && callbacks.onResetColor) {
-        callbacks.onResetColor(tile.id);
+      );
+    }
+    if (path) {
+      if (items.length) items.push({ id: "separator", label: "" });
+      items.push({ id: "reveal-in-finder", label: getRevealLabel() });
+      const ides = await getIdes();
+      for (const ide of ides) {
+        items.push({
+          id: `open-ide:${ide.id}`,
+          label: `Open in ${ide.label}`,
+        });
       }
-    });
-  }
+    }
+    if (!items.length) return;
+
+    const selected = await window.shellApi.showContextMenu(items);
+    if (!selected) return;
+    if (selected === "rename" && callbacks.onRename) {
+      callbacks.onRename(tile.id);
+    } else if (selected === "duplicate" && callbacks.onDuplicate) {
+      callbacks.onDuplicate(tile.id);
+    } else if (selected === "set-color" && callbacks.onSetColor) {
+      pickColor(tile.color, (color) =>
+        callbacks.onSetColor(tile.id, color),
+      );
+    } else if (selected === "reset-color" && callbacks.onResetColor) {
+      callbacks.onResetColor(tile.id);
+    } else if (selected === "reveal-in-finder") {
+      if (path) window.shellApi.revealInFinder(path);
+    } else if (selected.startsWith("open-ide:")) {
+      if (path) window.shellApi.openInIde(path, selected.slice("open-ide:".length));
+    }
+  });
 
   const contentArea = document.createElement("div");
   contentArea.className = "tile-content";

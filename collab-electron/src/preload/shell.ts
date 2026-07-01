@@ -301,6 +301,13 @@ contextBridge.exposeInMainWorld("shellApi", {
 
   openExternal: (url: string) => ipcRenderer.send("shell:open-external", url),
 
+  revealInFinder: (path: string) =>
+    ipcRenderer.send("nav:reveal-in-finder", path),
+  detectIdes: (): Promise<Array<{ id: string; label: string }>> =>
+    ipcRenderer.invoke("ide:detect"),
+  openInIde: (path: string, ideId?: string) =>
+    ipcRenderer.send("ide:open", { path, ideId }),
+
   trackEvent: (name: string, properties?: Record<string, unknown>) => {
     ipcRenderer.send("analytics:track-event", name, properties);
   },
