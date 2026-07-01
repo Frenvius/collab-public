@@ -10,12 +10,12 @@ The app is early-stage and in active development, with native desktop targets fo
 
 ## Install
 
-**[Download the latest release](https://github.com/collaborator-ai/collab-public/releases/latest)** for macOS, Windows, or Linux.
+**[Download the latest release](https://github.com/Frenvius/collab-public/releases/latest)** for macOS, Windows, or Linux.
 
 macOS and Linux also support command-line install:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/collaborator-ai/collab-public/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Frenvius/collab-public/main/install.sh | bash
 ```
 
 Windows: use the `.exe` installer from the releases page.
@@ -264,7 +264,7 @@ Platform notes:
 Once the prerequisites are installed, clone the repo and install dependencies:
 
 ```sh
-git clone https://github.com/collaborator-ai/collab-public.git
+git clone https://github.com/Frenvius/collab-public.git
 cd collab-public/collab-electron
 bun install
 ```
