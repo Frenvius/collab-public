@@ -28,6 +28,7 @@ const KNOWN_IDES: IdeDef[] = [
   { id: "windsurf", label: "Windsurf", command: "windsurf" },
   { id: "vscode-insiders", label: "VS Code Insiders", command: "code-insiders" },
   { id: "vscodium", label: "VSCodium", command: "codium" },
+  { id: "zed", label: "Zed", command: "zed" },
 ];
 
 function commandExists(command: string): boolean {
