@@ -25,12 +25,12 @@ const GIT_TIMEOUT_MS = 15_000;
 class RepoUpdateManager {
   private state: RepoUpdateState = { status: "idle" };
   private checkInterval: NodeJS.Timeout | null = null;
-  private cwd = process.cwd();
+
+  private get cwd(): string {
+    return app.isPackaged ? process.resourcesPath : process.cwd();
+  }
 
   init(): void {
-    // Only meaningful when running from source (`bun run dev`) — a
-    // packaged build isn't sitting in a git checkout that can be pulled.
-    if (app.isPackaged) return;
     setTimeout(() => this.check(), INITIAL_CHECK_DELAY_MS);
     this.checkInterval = setInterval(() => this.check(), CHECK_INTERVAL_MS);
   }
@@ -58,8 +58,6 @@ class RepoUpdateManager {
           : { status: "up-to-date", behindCount: 0, error: undefined },
       );
     } catch {
-      // No upstream configured, not a repo, or offline — stay quiet
-      // rather than nagging about something the user can't act on.
       this.setState({ status: "idle", behindCount: undefined, error: undefined });
     }
   }
